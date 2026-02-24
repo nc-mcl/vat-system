@@ -175,3 +175,31 @@ what it does, how to build, how to run, how to test, and all environment variabl
     /db
       /migrations                  ← Flyway SQL migrations
       /seeds                       ← Test data
+```
+
+## Last Agent Session
+
+**Agent:** Business Analyst Agent
+**Date:** 2026-02-24
+**Commit:** edba470
+
+### What was done
+- Read all 9 existing MCP analysis documents from VATRI-Codex
+- Cross-referenced rules against official SKAT sources (registration, rates, filing, deduction, reverse charge, corrections, rubrik fields)
+- Researched ViDA / Bookkeeping Act 2022 timeline
+- Produced three validated documents in `docs/analysis/`:
+  - `dk-vat-rules-validated.md` — 32 verified rules, 9 unverified, 7 gaps
+  - `implementation-risk-register.md` — 25 risks, top 3 are Critical
+  - `expert-review-questions.md` — 14 questions for a certified tax advisor
+
+### Critical findings for next agents
+1. **`semi_annual` cadence is missing** from the domain model — `TaxPeriod.cadence` must add this value; otherwise the filing obligation engine will generate wrong schedules for businesses with <DKK 5M turnover
+2. **OIOUBL 2.1 phases out May 15, 2026** — the skat-client must reject this format by that date
+3. **ViDA DRR mandatory January 1, 2028** — architecture scaffolding must begin in Phase 2
+4. **Pro-rata annual reporting** is a new 2024 SKAT requirement for mixed-activity businesses — must be surfaced in the API/reporting layer
+
+### Gaps requiring expert review before implementation
+See `docs/analysis/expert-review-questions.md` — specifically Q1 (non-EU service rubrik scope), Q2 (partial deduction methodology), Q3 (construction reverse charge), Q5 (monthly deadline calculation rule).
+
+### ROLE_CONTEXT_POLICY.md
+Referenced in CLAUDE.md but does not yet exist. Must be created before the next agent session.
