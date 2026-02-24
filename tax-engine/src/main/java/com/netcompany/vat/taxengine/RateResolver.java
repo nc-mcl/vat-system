@@ -1,9 +1,9 @@
 package com.netcompany.vat.taxengine;
 
-import com.netcompany.vat.coredomain.Result;
-import com.netcompany.vat.coredomain.TaxCode;
-import com.netcompany.vat.coredomain.VatRuleError;
-import com.netcompany.vat.coredomain.jurisdiction.JurisdictionPlugin;
+import com.netcompany.vat.domain.Result;
+import com.netcompany.vat.domain.TaxCode;
+import com.netcompany.vat.domain.VatRuleError;
+import com.netcompany.vat.domain.jurisdiction.JurisdictionPlugin;
 
 import java.time.LocalDate;
 

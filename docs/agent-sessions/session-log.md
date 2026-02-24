@@ -146,3 +146,177 @@ Recommended next agent: Domain Rules Agent
 
 
 
+Handoff Summary What I completed Full markdown inventory and audit against codebase/governance. Cross-reference checks across CLAUDE, role policy, ADRs, agent contracts, domain model, analysis docs, and READMEs. Created formal audit report and applied safe doc-only fixes. What the next agent needs to know Most remaining issues are contract/content alignment problems, not code changes. Manual reconciliation is required for cadence boundary and ViDA dates before downstream implementation. Files created or modified audit-report-2026-02-24.md (created) CLAUDE.md (updated) ADR-001-immutable-event-ledger.md (updated) README.md (created) README.md (created) README.md (created) README.md (created) README.md (created) Blockers or open questions Manual decision needed on authoritative ViDA timeline and exact 5M DKK cadence boundary. Recommended next agent Architecture Agent: resolve timeline/cadence decisions and align remaining agent contracts."
+
+
+
+Handoff Summary
+
+What I completed
+
+Task 1 (Result<T>): Already existed in core-domain (Architecture Agent). Used directly — no duplicate created.
+
+Task 2 (VatResult, ReverseChargeResult, RateResolver): VatResult already existed; created ReverseChargeResult and RateResolver.
+
+Task 3 (VatCalculator, ReverseChargeEngine, ExemptionClassifier, FilingPeriodCalculator): All four created.
+
+Task 4 (VatReturnAssembler, TaxEngine): Both created. Assembler populates jurisdictionFields with DK rubrik totals.
+
+Task 5 — 68 JUnit 5 tests across 6 test classes:
+
+Test class	Tests
+
+RateResolverTest	9
+
+VatCalculatorTest	16
+
+ReverseChargeEngineTest	11
+
+ExemptionClassifierTest	6
+
+FilingPeriodCalculatorTest	14
+
+VatReturnAssemblerTest	12
+
+Total	68
+
+Task 6 — BUILD SUCCESSFUL — 68 tests, 0 failures, 0 errors.
+
+Task 7 — CLAUDE.md and tax-engine/README.md updated.
+
+Bonus: Created Gradle wrapper (gradlew, gradlew.bat, gradle/wrapper/) — the project had none.
+
+What the next agent needs to know
+
+Package name gap (flag): CLAUDE.md says com.netcompany.vat.domain; actual package is com.netcompany.vat.coredomain. All imports in tax-engine use the correct actual package. A search-and-replace cleanup pass is needed in docs.
+
+
+
+Transaction.vatAmount() with rate = −1: For EXEMPT/OUT\_OF\_SCOPE transactions, rateInBasisPoints is −1, so vatAmount() computes a tiny negative value instead of zero. The VatReturnAssembler guards this via a switch case that never calls vatAmount() for those codes. The proper fix is in core-domain/Transaction.java: guard vatAmount() against rate < 0 and return MonetaryAmount.ZERO.
+
+
+
+Rubrik goods/services split: MVP puts all REVERSE\_CHARGE → Rubrik A services and all ZERO\_RATED → Rubrik B services. Full routing needs transactionType (GOODS/SERVICES) and counterpartyCountry fields on Transaction.
+
+
+
+Build environment: Gradle wrapper now in project root. On Windows with BitLocker D: drive, set GRADLE\_USER\_HOME=C:\\Temp\\gradle-user-home and JAVA\_HOME=C:\\Program Files\\JetBrains\\IntelliJ IDEA 2025.3.3\\jbr.
+
+
+
+Files created or modified
+
+File	Action
+
+tax-engine/src/main/java/.../ReverseChargeResult.java	Created
+
+tax-engine/src/main/java/.../RateResolver.java	Created
+
+tax-engine/src/main/java/.../VatCalculator.java	Created
+
+tax-engine/src/main/java/.../ReverseChargeEngine.java	Created
+
+tax-engine/src/main/java/.../ExemptionClassifier.java	Created
+
+tax-engine/src/main/java/.../FilingPeriodCalculator.java	Created
+
+tax-engine/src/main/java/.../VatReturnAssembler.java	Created
+
+tax-engine/src/main/java/.../TaxEngine.java	Created
+
+tax-engine/src/test/java/.../RateResolverTest.java	Created (9 tests)
+
+tax-engine/src/test/java/.../VatCalculatorTest.java	Created (16 tests)
+
+tax-engine/src/test/java/.../ReverseChargeEngineTest.java	Created (11 tests)
+
+tax-engine/src/test/java/.../ExemptionClassifierTest.java	Created (6 tests)
+
+tax-engine/src/test/java/.../FilingPeriodCalculatorTest.java	Created (14 tests)
+
+tax-engine/src/test/java/.../VatReturnAssemblerTest.java	Created (12 tests)
+
+tax-engine/README.md	Updated with components, test counts, gaps
+
+gradle/wrapper/gradle-wrapper.properties	Created
+
+gradle/wrapper/gradle-wrapper.jar	Created
+
+gradlew	Created
+
+gradlew.bat	Created
+
+CLAUDE.md	Updated Last Agent Session
+
+Blockers or open questions
+
+None blocking. Three advisory items flagged above (package name, vatAmount() guard, rubrik split).
+
+Recommended next agent
+
+Persistence Agent — implement the JOOQ/Flyway data layer. core-domain types and tax-engine logic are now complete and fully tested. The Persistence Agent has everything it needs to build VatReturnRepository, TransactionRepository, and the Flyway migration schema.
+
+
+
+Handoff Summary
+
+What I completed
+
+01-c4-system-context.md — C4 Context: VAT System + all external actors (SKAT, VIES, PEPPOL, OSS Portal future)
+
+02-c4-container.md — C4 Container: REST API, Tax Engine (library), SKAT Client, PostgreSQL, MCP Server (dev only)
+
+03-entity-relationship.md — ERD: all 5 core entities derived from actual Java records; jurisdiction-specific fields documented; immutability principle noted
+
+04-sequence-vat-filing.md — Full filing sequence: transaction ingestion → draft assembly → SKAT submission → acceptance/rejection; ViDA Phase 2 gate shown
+
+05-dataflow-reverse-charge.md — Reverse charge decision tree: cross-border B2B services/goods, ML §46 domestic categories, B2C; GAPs G3 and G5 marked
+
+06-dataflow-vat-classification.md — Full VAT classification tree: STANDARD/ZERO\_RATED/EXEMPT/REVERSE\_CHARGE/OUT\_OF\_SCOPE; rubrik mappings; GAPs G4 and G6 marked
+
+07-kubernetes-deployment.md — K8s deployment: vat-system namespace, API (2 replicas + HPA), PostgreSQL StatefulSet + PV, MCP Server, ConfigMaps, Secrets, resource limits
+
+08-jurisdiction-plugin-architecture.md — Plugin architecture: JurisdictionPlugin interface, DkJurisdictionPlugin, registry, future NO/DE placeholders, ViDA gate, interface contract table
+
+README.md — Diagrams index with audience and update triggers per diagram
+
+What the next agent needs to know
+
+All diagrams are grounded in actual Java source (DkJurisdictionPlugin, JurisdictionPlugin, core-domain records) — not assumptions
+
+Filing deadline is implemented as the 10th of the following month in DkJurisdictionPlugin; the BA analysis flags a gap (G2) against SKAT's published calendar for monthly filers
+
+Gaps G3, G4, G5, G6 in diagrams 05 and 06 need expert tax advisor sign-off before production classification logic is written
+
+ViDA DRR (diagram 04 and 08) is fully gated behind isVidaEnabled() — currently false for DK until Phase 2
+
+Files created or modified
+
+docs/diagrams/01-c4-system-context.md — new
+
+docs/diagrams/02-c4-container.md — new
+
+docs/diagrams/03-entity-relationship.md — new
+
+docs/diagrams/04-sequence-vat-filing.md — new
+
+docs/diagrams/05-dataflow-reverse-charge.md — new
+
+docs/diagrams/06-dataflow-vat-classification.md — new
+
+docs/diagrams/07-kubernetes-deployment.md — new
+
+docs/diagrams/08-jurisdiction-plugin-architecture.md — new
+
+docs/diagrams/README.md — new
+
+CLAUDE.md — updated Last Agent Session section
+
+Blockers or open questions
+
+None for the Design Agent's scope. Downstream gaps (G2–G6) are flagged in diagrams and in the BA analysis document.
+
+Recommended next agent
+
+Architecture Agent — diagrams are now available as a reference to reconcile open ADR items and the ViDA/threshold boundary gaps. The visual layer makes those decisions easier to reason about with stakeholders.
+

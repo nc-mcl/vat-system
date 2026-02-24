@@ -186,20 +186,81 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** Documentation Alignment (Codex)
+**Agent:** Pre-Persistence Fixup (Codex)
 **Date:** 2026-02-24
 **Next agent can proceed:** yes
 **Blockers for next agent:** none
 
 ### What was done
+- **Fix 1 — `Transaction.vatAmount()` guard**: Added early return of `MonetaryAmount.ZERO` when
+  `classification.rateInBasisPoints() < 0` (EXEMPT / OUT_OF_SCOPE). Root cause resolved in
+  `core-domain/Transaction.java`; `VatReturnAssembler`'s switch guard is now a belt-and-suspenders
+  defence rather than the only guard.
+- **Fix 2 — Package rename**: Renamed `com.netcompany.vat.coredomain` → `com.netcompany.vat.domain`
+  across all Java files in `core-domain/` (package declarations) and `tax-engine/` (imports).
+  Directory structure moved from `coredomain/` to `domain/`. CLAUDE.md base-package reference is now
+  accurate.
+- **Fix 3 — DK filing deadlines**: Replaced single "10th of following month" rule with cadence-aware
+  logic in `DkJurisdictionPlugin.calculateFilingDeadline()`:
+  - `MONTHLY` → 25th of the following month
+  - `QUARTERLY / SEMI_ANNUAL / ANNUAL` → 1st of the 3rd month after period end
+  Updated `FilingPeriodCalculatorTest` deadline assertions and overdue-check instants to match.
+- **All 68 tests pass**: `BUILD SUCCESSFUL` — 68 tests, 0 failures, 0 errors.
+- **Gradle wrapper jar replaced**: The pre-existing jar was truncated (42 KB); replaced with a valid
+  Gradle 8.10.2 wrapper jar downloaded from GitHub.
+
+### What the next agent needs to know
+1. **Base package is now `com.netcompany.vat.domain`** — the rename is complete; no further cleanup needed.
+2. **`Transaction.vatAmount()` is safe for all tax codes** — the guard is in place; the assembler's
+   switch guard remains as defence-in-depth.
+3. **Filing deadlines are cadence-aware** — downstream tests/fixtures must use the new deadline dates
+   (e.g. Q1 QUARTERLY → 2026-06-01, not 2026-04-10).
+4. **Rubrik goods/services split** still requires `transactionType` + `counterpartyCountry` on
+   `Transaction` for full EU routing. Advisory item — not a blocker.
+5. **Build**: Run via PowerShell with `JAVA_HOME` and `GRADLE_USER_HOME` set explicitly (see
+   Domain Rules Agent notes). The Gradle 8.10.2 distribution is cached at
+   `C:\Temp\gradle-user-home\wrapper\dists\gradle-8.10.2-bin\`.
+
+### Recommended next agent
+**Persistence Agent** — implement the JOOQ/Flyway data layer, repositories, and immutable event ledger
+using the domain types now available from `core-domain` (`com.netcompany.vat.domain`) and `tax-engine`.
+
+---
+
+## Previous Agent Session
+
+**Agent:** Domain Rules Agent
+**Date:** 2026-02-24
+
+### What was done
+- Implemented all 8 tax-engine source classes: `RateResolver`, `VatCalculator`, `ReverseChargeEngine`,
+  `ExemptionClassifier`, `FilingPeriodCalculator`, `VatReturnAssembler`, `TaxEngine` (facade),
+  and `ReverseChargeResult` (value type). `VatResult` was already created by the Architecture Agent.
+- `Result<T>` was already in `core-domain` — used directly, no duplicate created.
+- 68 JUnit 5 tests written across 6 test classes — all pass (`BUILD SUCCESSFUL`).
+- Created Gradle wrapper scripts (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) — project had none.
+- Updated `tax-engine/README.md` with full component documentation and known gaps.
+
+---
+
+## Previous Agent Session
+
+**Agent:** Design Agent
+**Date:** 2026-02-24
+
+### What was done
+- Created all 9 Mermaid diagram files in `docs/diagrams/`
+- Diagrams are based strictly on actual Java source in `core-domain/`, validated domain knowledge in `docs/analysis/dk-vat-rules-validated.md`, and ADR-003
+- All known gaps from the BA analysis are marked visually in the relevant diagrams (⚠️ yellow / 🔴 red)
+
+---
+
+## Previous Agent Session
+
+**Agent:** Documentation Alignment (Codex)
+**Date:** 2026-02-24
+
+### What was done
 - Updated stale operating contracts in `agents/domain-rules-agent`, `agents/integration-agent`, `agents/persistence-agent`, `agents/reporting-agent`, and `agents/testing-agent`
 - Removed references to non-existent files/types and aligned instructions to current repository reality
 - Preserved role scope while making task lists executable against existing modules and documents
-
-### What the next agent needs to know
-- Updated contracts now reference current `core-domain` record names (`VatReturn`, etc.) and existing analysis files under `docs/analysis/`
-- `api` and `persistence` remain early-stage placeholders; corresponding contracts now explicitly account for phased implementation
-- Remaining architecture decisions (ViDA timeline and 5M DKK threshold boundary) are still tracked separately in audit findings
-
-### Recommended next agent
-**Architecture Agent** - reconcile open architecture decisions and propagate to ADRs/contracts.
