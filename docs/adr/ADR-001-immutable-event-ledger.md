@@ -1,10 +1,10 @@
-# ADR-001: Use Immutable Event Ledger for VAT Transactions
+﻿# ADR-001: Use Immutable Event Ledger for VAT Transactions
 
 ## Status
 Proposed
 
 ## Context
-Danish Bogf�ringsloven and EU VAT rules prohibit deletion of accounting records.
+Danish Bogføringsloven and EU VAT rules prohibit deletion of accounting records.
 All corrections must be traceable. ViDA DRR requires real-time reporting of transactions.
 
 ## Decision
@@ -16,3 +16,10 @@ Corrections are new events referencing the original, never updates to existing r
 - Simplifies ViDA real-time reporting (events can be streamed directly)
 - Slightly more complex query logic (must reconstruct current state from event chain)
 - Naturally supports SAF-T export format
+
+
+## Alternatives Considered
+- Mutable ledger rows with UPDATE history columns - rejected because it weakens immutability guarantees and audit defensibility.
+- Soft-delete with tombstones - rejected because deletion semantics are not acceptable for VAT/bookkeeping records.
+- Periodic snapshot-only storage - rejected because it loses event-level traceability required for corrections and investigations.
+
