@@ -96,3 +96,82 @@ Do not apply Java conventions to /mcp-server.
 - PEPPOL BIS 3.0: https://docs.peppol.eu/poacc/billing/3.0/
 - ViDA Directive: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A52022PC0701
 - VIES VAT Validation: https://ec.europa.eu/taxation_customs/vies/
+
+## Mandatory Constraints (All Agents)
+
+> These constraints are non-negotiable. Every agent must follow them.
+> Full details in `ROLE_CONTEXT_POLICY.md` — read it before starting work.
+
+### Open Source Only
+All dependencies must use permissive open source licenses (Apache 2.0, MIT, BSD).
+No commercial, GPL, or AGPL dependencies. Verify every dependency before adding it.
+Pre-approved dependencies are listed in `ROLE_CONTEXT_POLICY.md`.
+
+### Containers and Kubernetes
+Every runnable service must have:
+- A multi-stage `Dockerfile` using minimal Alpine base images
+- Kubernetes manifests in `/infrastructure/k8s/<service-name>/`
+- Health check endpoints (`/actuator/health/liveness` and `/actuator/health/readiness`)
+- Explicit resource limits on all pods
+A `docker-compose.yml` must exist in the project root for local development.
+
+### Agent Handoff Protocol
+Every agent must before finishing:
+1. Update `CLAUDE.md` with a "Last Agent Session" section
+2. Update the README of every component it touched
+3. Verify the next agent has everything it needs
+4. Print a structured Handoff Summary in chat
+
+### README Standards
+Every directory with runnable code must have a README covering:
+what it does, how to build, how to run, how to test, and all environment variables.
+
+## Technology Stack
+- **Language:** Java 21
+- **Framework:** Spring Boot 3.3
+- **Build:** Gradle multi-module
+- **Database:** PostgreSQL + Flyway + JOOQ (open source edition)
+- **Validation:** Bean Validation (Jakarta)
+- **Testing:** JUnit 5 + Mockito + Testcontainers
+- **API:** Spring Web (REST)
+- **Observability:** Micrometer + OpenTelemetry + structured JSON logging
+- **Containers:** Docker (eclipse-temurin:21-jre-alpine)
+- **Orchestration:** Kubernetes
+- **MCP Server:** TypeScript / Node.js (separate tool, not part of backend)
+- **Base package:** `com.netcompany.vat`
+
+## Project Structure
+```
+/vat-system
+  CLAUDE.md                        ← Master context (this file)
+  ROLE_CONTEXT_POLICY.md           ← Mandatory agent constraints
+  docker-compose.yml               ← Local development
+  settings.gradle.kts
+  build.gradle.kts
+  /agents                          ← Agent operating contracts
+    /architecture-agent
+    /business-analyst-agent
+    /domain-rules-agent
+    /persistence-agent
+    /integration-agent
+    /reporting-agent
+    /testing-agent
+  /core-domain                     ← Pure Java domain model
+  /tax-engine                      ← Pure Java business logic
+  /persistence                     ← JOOQ + Flyway + repositories
+  /api                             ← Spring Boot REST API
+  /skat-client                     ← SKAT API integration
+  /mcp-server                      ← TypeScript MCP server
+  /docs
+    /adr                           ← Architecture Decision Records
+    /domain-model
+    /analysis                      ← Validated VAT domain knowledge
+  /infrastructure
+    /k8s                           ← Kubernetes manifests
+      /cluster                     ← Namespace, ingress, secrets template
+      /api
+      /persistence
+      /mcp-server
+    /db
+      /migrations                  ← Flyway SQL migrations
+      /seeds                       ← Test data
