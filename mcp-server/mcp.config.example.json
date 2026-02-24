@@ -1,0 +1,11 @@
+﻿{
+  "mcpServers": {
+    "tax-core": {
+      "command": "node",
+      "args": [
+        "./dist/index.js"
+      ],
+      "cwd": "./mcp-server"
+    }
+  }
+}
