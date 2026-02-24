@@ -186,20 +186,20 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** Audit Agent
+**Agent:** Documentation Alignment (Codex)
 **Date:** 2026-02-24
 **Next agent can proceed:** yes
-**Blockers for next agent:** see `/docs/audit/audit-report-2026-02-24.md`
+**Blockers for next agent:** none
 
 ### What was done
-- Audited all markdown documentation for consistency with codebase and governance files
-- Produced full inventory and findings in `docs/audit/audit-report-2026-02-24.md`
-- Applied safe documentation fixes (ADR section, CLAUDE alignment, missing module READMEs)
+- Updated stale operating contracts in `agents/domain-rules-agent`, `agents/integration-agent`, `agents/persistence-agent`, `agents/reporting-agent`, and `agents/testing-agent`
+- Removed references to non-existent files/types and aligned instructions to current repository reality
+- Preserved role scope while making task lists executable against existing modules and documents
 
 ### What the next agent needs to know
-- Several agent operating contracts still reference stale paths/types and need manual correction
-- Filing cadence boundary at exactly 5M DKK is inconsistent between docs and implementation
-- ViDA timeline differs across documents and needs a single source-of-truth date set
+- Updated contracts now reference current `core-domain` record names (`VatReturn`, etc.) and existing analysis files under `docs/analysis/`
+- `api` and `persistence` remain early-stage placeholders; corresponding contracts now explicitly account for phased implementation
+- Remaining architecture decisions (ViDA timeline and 5M DKK threshold boundary) are still tracked separately in audit findings
 
 ### Recommended next agent
-**Architecture Agent** â€” reconcile cadence boundary and ViDA timeline decisions, then update dependent contracts/docs.
+**Architecture Agent** - reconcile open architecture decisions and propagate to ADRs/contracts.
