@@ -2,184 +2,231 @@
 
 ## Overview
 
-The domain model is **jurisdiction-agnostic at its core**. All entities use generics or union types
-to support jurisdiction-specific extensions without polluting core logic. The Danish (`DK`) plugin
-is the first concrete implementation; additional jurisdictions extend the same interfaces.
+The domain model is **jurisdiction-agnostic at its core**. All entities are Java 21 records or sealed
+interfaces with no framework dependencies. Danish VAT is the first jurisdiction plugin; additional
+countries extend the same interfaces without touching core logic.
+
+Base package: `com.netcompany.vat.coredomain`
+
+---
+
+## Value Objects
+
+### `MonetaryAmount` (record)
+
+Wraps a `long` representing the smallest currency unit (øre for DKK). Never use `double` or
+`BigDecimal` for monetary storage.
+
+```java
+public record MonetaryAmount(long oere) {
+    public static MonetaryAmount ofOere(long oere) { ... }
+    public static MonetaryAmount zero() { ... }
+    public MonetaryAmount add(MonetaryAmount other) { ... }
+    public MonetaryAmount subtract(MonetaryAmount other) { ... }
+    public MonetaryAmount negate() { ... }
+}
+```
+
+---
+
+## Enumerations
+
+### `JurisdictionCode`
+```java
+public enum JurisdictionCode { DK }
+```
+The deliberate, minimal coupling point when adding a new jurisdiction. Update this enum and create
+a new plugin implementation — zero other core changes required.
+
+### `TaxCode`
+```java
+public enum TaxCode { STANDARD, ZERO_RATED, EXEMPT, REVERSE_CHARGE, OUT_OF_SCOPE }
+```
+
+### `FilingCadence`
+```java
+public enum FilingCadence { MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL }
+```
+`SEMI_ANNUAL` covers DK businesses with annual turnover < 5M DKK (added following BA validation).
+
+### `TaxPeriodStatus`
+```java
+public enum TaxPeriodStatus { OPEN, FILED, ASSESSED, CORRECTED }
+```
+
+### `VatReturnStatus`
+```java
+public enum VatReturnStatus { DRAFT, SUBMITTED, ACCEPTED, REJECTED }
+```
+
+### `ResultType`
+```java
+public enum ResultType { PAYABLE, CLAIMABLE, ZERO }
+```
+Derived from `netVat`: positive → PAYABLE, negative → CLAIMABLE, zero → ZERO.
 
 ---
 
 ## Entity Catalogue
 
-### 1. `TaxReturn<J>`
-The top-level aggregate for a single VAT filing period for one registered entity in one jurisdiction.
+### 1. `TaxClassification` (record)
+
+The VAT treatment applied to a transaction line. Stored immutably at transaction time so that
+historical records retain their rate even if the jurisdiction changes it later.
+
+| Field | Type | Notes |
+|---|---|---|
+| `taxCode` | `TaxCode` | Jurisdiction-neutral treatment |
+| `rateInBasisPoints` | `long` | e.g. 2500 = 25.00%; -1 = exempt (N/A) |
+| `isReverseCharge` | `boolean` | Buyer accounts for VAT |
+| `effectiveDate` | `LocalDate` | Rate determination date |
+
+---
+
+### 2. `Transaction` (record)
+
+An economic event that affects VAT position within a period. Immutable — corrections create new
+transactions, never modify existing ones.
 
 | Field | Type | Jurisdiction-neutral? | Notes |
 |---|---|---|---|
-| `id` | `string` (UUID) | Yes | Immutable system identifier |
-| `jurisdiction` | `J extends JurisdictionCode` | Yes | e.g. `'DK'`, `'NO'` |
-| `counterpartyId` | `string` | Yes | FK to `Counterparty` |
-| `taxPeriod` | `TaxPeriod` | Yes | Start/end dates of the filing period |
-| `filingType` | `FilingType` | Yes | `'regular' \| 'correction' \| 'nil'` |
-| `outputVat` | `bigint` | Yes | Total output VAT (øre/smallest unit) |
-| `inputVatDeductible` | `bigint` | Yes | Deductible input VAT |
-| `netVat` | `bigint` | Yes | Derived: outputVat − inputVatDeductible |
-| `resultType` | `'payable' \| 'claimable'` | Yes | Derived from netVat sign |
-| `status` | `ReturnStatus` | Yes | `'draft' \| 'submitted' \| 'accepted' \| 'rejected'` |
-| `submittedAt` | `string \| null` | Yes | ISO 8601 UTC |
-| `jurisdictionFields` | `JurisdictionReturnFields[J]` | **No** | Authority-specific rubrik data, etc. |
-| `correctionOf` | `string \| null` | Yes | FK to original `TaxReturn.id` if correction |
-| `createdAt` | `string` | Yes | ISO 8601 UTC, immutable |
+| `id` | `UUID` | Yes | Immutable system identifier |
+| `jurisdictionCode` | `JurisdictionCode` | Yes | Governing jurisdiction |
+| `periodId` | `UUID` | Yes | FK to `TaxPeriod` |
+| `counterpartyId` | `UUID` | Yes | Supplier or customer |
+| `transactionDate` | `LocalDate` | Yes | Tax point date |
+| `description` | `String` | Yes | Human-readable |
+| `amountExclVat` | `MonetaryAmount` | Yes | Base taxable amount in øre |
+| `classification` | `TaxClassification` | Yes | VAT treatment applied |
+| `createdAt` | `Instant` | Yes | UTC, immutable |
+
+Computed method: `vatAmount()` — applies the basis-point rate to `amountExclVat` using exact
+integer arithmetic.
 
 ---
 
-### 2. `Invoice`
-A legal document representing a supply of goods or services. May be inbound (purchase) or outbound (sale).
+### 3. `TaxPeriod` (record)
+
+The time window for a VAT filing. Cadence and deadlines are determined by the jurisdiction plugin.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `UUID` | Immutable |
+| `jurisdictionCode` | `JurisdictionCode` | |
+| `startDate` | `LocalDate` | First day of period (inclusive) |
+| `endDate` | `LocalDate` | Last day of period (inclusive) |
+| `cadence` | `FilingCadence` | MONTHLY / QUARTERLY / SEMI_ANNUAL / ANNUAL |
+| `status` | `TaxPeriodStatus` | OPEN / FILED / ASSESSED / CORRECTED |
+
+Computed method: `periodDays()` — derived, not stored (endDate − startDate + 1).
+
+---
+
+### 4. `Counterparty` (record)
+
+A legal entity — taxpayer, customer, or supplier. VAT number format is validated per jurisdiction
+by the plugin; the core stores it as a raw string.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | `UUID` | |
+| `jurisdictionCode` | `JurisdictionCode` | Jurisdiction of registration |
+| `vatNumber` | `String` | Format varies by jurisdiction |
+| `name` | `String` | Legal name |
+
+---
+
+### 5. `VatReturn` (record)
+
+Top-level aggregate for a single VAT filing period. Immutable — corrections produce a new
+`VatReturn` linked via a `Correction` record.
 
 | Field | Type | Jurisdiction-neutral? | Notes |
 |---|---|---|---|
-| `id` | `string` | Yes | Immutable |
-| `direction` | `'inbound' \| 'outbound'` | Yes | |
-| `counterpartyId` | `string` | Yes | Supplier or customer |
-| `invoiceNumber` | `string` | Yes | |
-| `invoiceDate` | `string` | Yes | ISO 8601 |
-| `taxPointDate` | `string` | Yes | VAT liability date (may differ from invoice date) |
-| `lines` | `InvoiceLine[]` | Yes | |
-| `totalNet` | `bigint` | Yes | Excl. VAT |
-| `totalVat` | `bigint` | Yes | |
-| `totalGross` | `bigint` | Yes | |
-| `currencyCode` | `string` | Yes | ISO 4217 (e.g. `'DKK'`) |
-| `peppolDocumentId` | `string \| null` | Yes | PEPPOL BIS 3.0 ref if e-invoice |
-| `jurisdictionCode` | `JurisdictionCode` | Yes | Which jurisdiction's rules apply |
+| `id` | `UUID` | Yes | Immutable |
+| `jurisdictionCode` | `JurisdictionCode` | Yes | |
+| `periodId` | `UUID` | Yes | FK to `TaxPeriod` |
+| `outputVat` | `MonetaryAmount` | Yes | Total output VAT (sales) |
+| `inputVatDeductible` | `MonetaryAmount` | Yes | Deductible input VAT (purchases) |
+| `netVat` | `MonetaryAmount` | Yes | Derived: outputVat − inputVatDeductible |
+| `resultType` | `ResultType` | Yes | Derived from netVat sign |
+| `claimAmount` | `MonetaryAmount` | Yes | Derived: abs(netVat) when CLAIMABLE |
+| `status` | `VatReturnStatus` | Yes | Lifecycle state |
+| `jurisdictionFields` | `Map<String, Object>` | **No** | Authority-specific fields (e.g. SKAT rubrik values) |
+
+Use the `VatReturn.of(...)` factory to create instances — it derives `netVat`, `resultType`,
+and `claimAmount` automatically.
 
 ---
 
-### 3. `InvoiceLine`
-A single line item on an invoice.
+### 6. `Correction` (record)
+
+Formal correction to a previously submitted `VatReturn`. The original is never modified.
 
 | Field | Type | Notes |
 |---|---|---|
-| `lineNumber` | `number` | 1-based |
-| `description` | `string` | |
-| `quantity` | `bigint` | In smallest unit (e.g. 1000 = 1.000 units) |
-| `unitPrice` | `bigint` | Per unit, excl. VAT, in smallest currency unit |
-| `taxCode` | `TaxCode` | Determines rate and treatment |
-| `netAmount` | `bigint` | quantity × unitPrice |
-| `vatAmount` | `bigint` | Calculated from taxCode rate |
+| `id` | `UUID` | |
+| `originalReturnId` | `UUID` | The return being corrected |
+| `correctedReturnId` | `UUID` | The new return with corrections |
+| `reason` | `String` | Mandatory free-text |
 
 ---
 
-### 4. `Transaction`
-Records an economic event that affects VAT position. Each `Invoice` generates one or more `Transactions`.
+## Error Model
 
-| Field | Type | Jurisdiction-neutral? | Notes |
-|---|---|---|---|
-| `id` | `string` | Yes | Immutable |
-| `invoiceId` | `string` | Yes | Source invoice |
-| `taxReturnId` | `string \| null` | Yes | Assigned when period is closed |
-| `transactionDate` | `string` | Yes | ISO 8601 |
-| `taxCode` | `TaxCode` | Yes | |
-| `taxableAmount` | `bigint` | Yes | Base amount |
-| `vatAmount` | `bigint` | Yes | Computed |
-| `direction` | `'input' \| 'output'` | Yes | |
-| `reverseCharge` | `boolean` | Yes | |
-| `euTransactionType` | `EuTransactionType \| null` | Yes | `'goods' \| 'services' \| null` |
-| `counterpartyId` | `string` | Yes | |
+### `VatRuleError` (sealed interface)
 
----
+Discriminated union of domain-level VAT rule violations. Used with `Result<T>` to propagate
+errors without exceptions.
 
-### 5. `TaxCode`
-Encodes the VAT treatment for a line item. Jurisdiction-neutral enum values backed by jurisdiction-specific rate data.
+```java
+public sealed interface VatRuleError
+        permits UnknownTaxCode, InvalidTransaction, MissingVatNumber, PeriodAlreadyFiled {
 
-| Field | Type | Notes |
-|---|---|---|
-| `code` | `string` | e.g. `'DK_STANDARD'`, `'DK_ZERO'`, `'DK_EXEMPT'` |
-| `jurisdictionCode` | `JurisdictionCode` | |
-| `rateType` | `'standard' \| 'reduced' \| 'zero' \| 'exempt'` | |
-| `rate` | `bigint` | Basis points (e.g. 2500 = 25.00%) |
-| `reverseChargeApplicable` | `boolean` | |
-| `description` | `string` | Human-readable |
+    record UnknownTaxCode(String code) implements VatRuleError {}
+    record InvalidTransaction(String reason) implements VatRuleError {}
+    record MissingVatNumber(String counterpartyId) implements VatRuleError {}
+    record PeriodAlreadyFiled(UUID periodId) implements VatRuleError {}
+}
+```
 
----
+### `Result<T>` (sealed interface)
 
-### 6. `TaxPeriod`
-Represents the time window for a VAT filing.
+Functional error monad. Use instead of exceptions for expected domain rule violations.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `string` | |
-| `jurisdictionCode` | `JurisdictionCode` | |
-| `startDate` | `string` | ISO 8601, inclusive |
-| `endDate` | `string` | ISO 8601, inclusive |
-| `cadence` | `'monthly' \| 'quarterly' \| 'annual'` | |
-| `dueDate` | `string` | Filing deadline, ISO 8601 |
-| `periodDays` | `number` | Derived: endDate − startDate + 1 |
-| `status` | `'open' \| 'closed' \| 'submitted'` | |
+```java
+public sealed interface Result<T> permits Result.Ok, Result.Err {
+    record Ok<T>(T value) implements Result<T> {}
+    record Err<T>(VatRuleError error) implements Result<T> {}
+
+    static <T> Result<T> ok(T value) { ... }
+    static <T> Result<T> err(VatRuleError error) { ... }
+    boolean isOk();
+    boolean isErr();
+    <U> Result<U> map(Function<T, U> mapper);
+    <U> Result<U> flatMap(Function<T, Result<U>> mapper);
+}
+```
 
 ---
 
-### 7. `Counterparty`
-A legal entity — either the taxpayer themselves, a customer, or a supplier.
+## Jurisdiction Plugin Interface
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `string` | |
-| `name` | `string` | |
-| `role` | `'self' \| 'customer' \| 'supplier'` | |
-| `vatNumber` | `string \| null` | Format validated per jurisdiction |
-| `euVatNumber` | `string \| null` | VIES-validated EU VAT number |
-| `cvrNumber` | `string \| null` | Danish CVR (DK-specific) |
-| `countryCode` | `string` | ISO 3166-1 alpha-2 |
-| `address` | `Address` | |
-| `viesValidated` | `boolean` | |
-| `viesValidatedAt` | `string \| null` | ISO 8601 |
+### `JurisdictionPlugin` (interface)
 
----
+Defined in `com.netcompany.vat.coredomain.jurisdiction`. Every country implements this interface.
 
-### 8. `FilingObligation`
-Describes the legal obligation for a counterparty to file in a jurisdiction.
-
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `string` | |
-| `counterpartyId` | `string` | |
-| `jurisdictionCode` | `JurisdictionCode` | |
-| `cadence` | `'monthly' \| 'quarterly' \| 'annual'` | Determined by revenue thresholds |
-| `annualRevenue` | `bigint` | Used to determine cadence |
-| `thresholdBreached` | `boolean` | e.g. >50M DKK triggers monthly in DK |
-| `effectiveFrom` | `string` | ISO 8601 |
-| `effectiveTo` | `string \| null` | Null = currently active |
-
----
-
-### 9. `Correction`
-Represents a formal correction to a previously submitted `TaxReturn`. Corrections are new events — the original is never mutated.
-
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `string` | |
-| `originalReturnId` | `string` | FK to the return being corrected |
-| `correctionReturnId` | `string` | FK to the new return with corrections |
-| `reason` | `string` | Mandatory free-text |
-| `creditNoteInvoiceId` | `string \| null` | If triggered by a credit note |
-| `createdAt` | `string` | ISO 8601, immutable |
-| `createdBy` | `string` | User or system identifier |
-
----
-
-### 10. `AuditEvent`
-Immutable log of every state change. Written before the state change takes effect.
-
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `string` | UUID, immutable |
-| `eventType` | `AuditEventType` | e.g. `'RETURN_SUBMITTED'`, `'INVOICE_CREATED'` |
-| `aggregateType` | `string` | e.g. `'TaxReturn'`, `'Invoice'` |
-| `aggregateId` | `string` | FK to the affected entity |
-| `payload` | `Record<string, unknown>` | Snapshot of relevant state |
-| `jurisdictionCode` | `JurisdictionCode` | |
-| `occurredAt` | `string` | ISO 8601 UTC, system clock |
-| `actorId` | `string` | User or agent identifier |
-| `correlationId` | `string` | Links related events (e.g. correction chain) |
+```java
+public interface JurisdictionPlugin {
+    JurisdictionCode getCode();
+    long getVatRateInBasisPoints(TaxCode taxCode, LocalDate effectiveDate);
+    FilingCadence determineFilingCadence(MonetaryAmount annualTurnover);
+    LocalDate calculateFilingDeadline(TaxPeriod period);
+    boolean isReverseChargeApplicable(Transaction transaction);
+    boolean isVidaEnabled();
+    String getAuthorityName();
+}
+```
 
 ---
 
@@ -188,144 +235,78 @@ Immutable log of every state change. Written before the state change takes effec
 ```mermaid
 erDiagram
     COUNTERPARTY {
-        string id PK
-        string name
-        string vatNumber
-        string euVatNumber
-        string cvrNumber
-        string countryCode
-        string role
-    }
-
-    FILING_OBLIGATION {
-        string id PK
-        string counterpartyId FK
+        UUID id PK
         string jurisdictionCode
-        string cadence
-        bigint annualRevenue
-        boolean thresholdBreached
-        string effectiveFrom
-        string effectiveTo
+        string vatNumber
+        string name
     }
 
     TAX_PERIOD {
-        string id PK
+        UUID id PK
         string jurisdictionCode
-        string startDate
-        string endDate
+        date startDate
+        date endDate
         string cadence
-        string dueDate
         string status
     }
 
-    TAX_RETURN {
-        string id PK
+    VAT_RETURN {
+        UUID id PK
         string jurisdictionCode
-        string counterpartyId FK
-        string taxPeriodId FK
-        string filingType
-        bigint outputVat
-        bigint inputVatDeductible
-        bigint netVat
+        UUID periodId FK
+        long outputVat
+        long inputVatDeductible
+        long netVat
         string resultType
+        long claimAmount
         string status
-        string correctionOf FK
+        jsonb jurisdictionFields
     }
 
     CORRECTION {
-        string id PK
-        string originalReturnId FK
-        string correctionReturnId FK
+        UUID id PK
+        UUID originalReturnId FK
+        UUID correctedReturnId FK
         string reason
-        string creditNoteInvoiceId FK
-    }
-
-    INVOICE {
-        string id PK
-        string direction
-        string counterpartyId FK
-        string invoiceNumber
-        string taxPointDate
-        bigint totalNet
-        bigint totalVat
-        string currencyCode
-        string peppolDocumentId
-    }
-
-    INVOICE_LINE {
-        number lineNumber
-        string invoiceId FK
-        string description
-        bigint quantity
-        bigint unitPrice
-        string taxCode
-        bigint netAmount
-        bigint vatAmount
     }
 
     TRANSACTION {
-        string id PK
-        string invoiceId FK
-        string taxReturnId FK
-        string transactionDate
+        UUID id PK
+        string jurisdictionCode
+        UUID periodId FK
+        UUID counterpartyId FK
+        date transactionDate
+        string description
+        long amountExclVat
         string taxCode
-        bigint taxableAmount
-        bigint vatAmount
-        string direction
-        boolean reverseCharge
-        string euTransactionType
-        string counterpartyId FK
+        long rateInBasisPoints
+        boolean isReverseCharge
+        date classificationEffectiveDate
+        timestamp createdAt
     }
 
-    TAX_CODE {
-        string code PK
-        string jurisdictionCode
-        string rateType
-        bigint rate
-        boolean reverseChargeApplicable
-    }
-
-    AUDIT_EVENT {
-        string id PK
-        string eventType
-        string aggregateType
-        string aggregateId
-        string jurisdictionCode
-        string occurredAt
-        string actorId
-        string correlationId
-    }
-
-    COUNTERPARTY ||--o{ FILING_OBLIGATION : "has"
-    COUNTERPARTY ||--o{ TAX_RETURN : "files"
-    COUNTERPARTY ||--o{ INVOICE : "issues or receives"
+    COUNTERPARTY ||--o{ VAT_RETURN : "files"
     COUNTERPARTY ||--o{ TRANSACTION : "party to"
 
-    TAX_PERIOD ||--o{ TAX_RETURN : "covers"
+    TAX_PERIOD ||--o{ VAT_RETURN : "covers"
+    TAX_PERIOD ||--o{ TRANSACTION : "aggregates"
 
-    TAX_RETURN ||--o{ TRANSACTION : "aggregates"
-    TAX_RETURN ||--o| CORRECTION : "corrected by"
-    TAX_RETURN ||--o| TAX_RETURN : "correctionOf"
+    VAT_RETURN ||--o| CORRECTION : "corrected by"
+    VAT_RETURN ||--o| VAT_RETURN : "correctionOf"
 
-    INVOICE ||--o{ INVOICE_LINE : "contains"
-    INVOICE ||--o{ TRANSACTION : "generates"
-
-    INVOICE_LINE }o--|| TAX_CODE : "classified by"
-    TRANSACTION }o--|| TAX_CODE : "classified by"
-
-    CORRECTION ||--|| TAX_RETURN : "originalReturn"
-    CORRECTION ||--|| TAX_RETURN : "correctionReturn"
+    CORRECTION ||--|| VAT_RETURN : "originalReturn"
+    CORRECTION ||--|| VAT_RETURN : "correctedReturn"
 ```
 
 ---
 
 ## Jurisdiction-Neutral vs Jurisdiction-Specific Fields
 
-| Concept | Neutral Core | DK-Specific Extension |
+| Concept | Neutral Core | DK Extension (via `jurisdictionFields`) |
 |---|---|---|
-| Tax return fields | outputVat, inputVat, netVat, status | rubrikA (goods/services), rubrikB (goods/services) |
-| Counterparty ID | vatNumber, euVatNumber | cvrNumber (8-digit CVR) |
-| Filing cadence | monthly/quarterly/annual | Threshold: >50M DKK → monthly |
-| Tax code | rateType (standard/reduced/zero/exempt) | `DK_STANDARD` (25%), `DK_ZERO`, `DK_EXEMPT` |
+| Tax return fields | `outputVat`, `inputVat`, `netVat`, `status` | `rubrikA` (EU goods/services), `rubrikB` (EU goods/services) |
+| Counterparty ID | `vatNumber` | CVR number (8-digit, stored separately in persistence) |
+| Filing cadence | MONTHLY / QUARTERLY / SEMI_ANNUAL / ANNUAL | Threshold: >50M DKK → monthly; <5M DKK → semi-annual |
+| Tax code | `STANDARD`, `ZERO_RATED`, `EXEMPT`, etc. | Rate: 25% standard, 0% zero/export |
 | Report format | Structured filing data | SKAT XML rubrik format |
-| Authority client | `AuthorityApiClient` interface | SKAT REST API client |
+| Authority client | `JurisdictionPlugin.getAuthorityName()` | SKAT REST API client |

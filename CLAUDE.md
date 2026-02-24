@@ -179,27 +179,29 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** Business Analyst Agent
+**Agent:** Architecture Agent
 **Date:** 2026-02-24
-**Commit:** edba470
+**Next agent can proceed:** yes
+**Blockers for next agent:** none
 
 ### What was done
-- Read all 9 existing MCP analysis documents from VATRI-Codex
-- Cross-referenced rules against official SKAT sources (registration, rates, filing, deduction, reverse charge, corrections, rubrik fields)
-- Researched ViDA / Bookkeeping Act 2022 timeline
-- Produced three validated documents in `docs/analysis/`:
-  - `dk-vat-rules-validated.md` — 32 verified rules, 9 unverified, 7 gaps
-  - `implementation-risk-register.md` — 25 risks, top 3 are Critical
-  - `expert-review-questions.md` — 14 questions for a certified tax advisor
+- Created all core Java 21 domain model types in `core-domain` (`MonetaryAmount`, `JurisdictionCode`, `TaxCode`, `FilingCadence`, `TaxPeriodStatus`, `VatReturnStatus`, `ResultType`, `TaxClassification`, `Transaction`, `TaxPeriod`, `Counterparty`, `VatReturn`, `Correction`)
+- Created `VatRuleError` sealed interface (discriminated error union) and `Result<T>` generic sealed type
+- Created `JurisdictionPlugin` interface (`com.netcompany.vat.coredomain.jurisdiction`)
+- Created `DkJurisdictionPlugin` — full DK implementation with rates, filing cadence, deadlines, reverse charge, ViDA flag
+- Added `SEMI_ANNUAL` to `FilingCadence` (BA Agent finding: missing for <5M DKK businesses)
+- Updated `docs/domain-model/core-entities.md` — replaced TypeScript with Java records/sealed interfaces, updated ERD
+- Updated `docs/adr/ADR-003-jurisdiction-plugin-architecture.md` — replaced TypeScript examples with Java
+- Created `docs/adr/ADR-004-java-patterns.md` — records, sealed interfaces, `long` øre, no Lombok, virtual threads, OIOUBL phase-out
 
-### Critical findings for next agents
-1. **`semi_annual` cadence is missing** from the domain model — `TaxPeriod.cadence` must add this value; otherwise the filing obligation engine will generate wrong schedules for businesses with <DKK 5M turnover
-2. **OIOUBL 2.1 phases out May 15, 2026** — the skat-client must reject this format by that date
-3. **ViDA DRR mandatory January 1, 2028** — architecture scaffolding must begin in Phase 2
-4. **Pro-rata annual reporting** is a new 2024 SKAT requirement for mixed-activity businesses — must be surfaced in the API/reporting layer
+### What the next agent needs to know
+- All domain types use package `com.netcompany.vat.coredomain` (not `com.netcompany.vat.domain`)
+- Jurisdiction sub-packages: `com.netcompany.vat.coredomain.jurisdiction` (interface), `com.netcompany.vat.coredomain.dk` (DK plugin)
+- `VatReturn.of(...)` factory derives `netVat`, `resultType`, and `claimAmount` — use it instead of the raw record constructor
+- `DkJurisdictionPlugin` is stateless — safe to register as a Spring singleton
+- `FilingCadence.SEMI_ANNUAL` is now present (< 5M DKK annual turnover threshold)
+- OIOUBL 2.1 phases out May 15, 2026 — documented in ADR-004; `skat-client` must handle this
+- ViDA DRR mandatory 2028 — `isVidaEnabled()` returns `false` until Phase 2; hook is in place
 
-### Gaps requiring expert review before implementation
-See `docs/analysis/expert-review-questions.md` — specifically Q1 (non-EU service rubrik scope), Q2 (partial deduction methodology), Q3 (construction reverse charge), Q5 (monthly deadline calculation rule).
-
-### ROLE_CONTEXT_POLICY.md
-Referenced in CLAUDE.md but does not yet exist. Must be created before the next agent session.
+### Recommended next agent
+**Domain Rules Agent** — implement `tax-engine` module: VAT calculator, transaction classifier, reverse charge logic, and period closing rules. All interfaces are defined; the agent can build directly on the domain types without changes to `core-domain`.
