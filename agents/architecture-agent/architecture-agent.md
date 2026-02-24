@@ -49,50 +49,48 @@ Update the root `CLAUDE.md` to reflect:
 ### Task 3 — Core Domain Model
 Create `/docs/domain-model/core-entities.md` with a full domain model covering:
 - Generic/abstract concepts with clear separation from jurisdiction-specific implementations
-- All core entities: `TaxReturn`, `Invoice`, `Transaction`, `TaxRate`, `TaxPeriod`, `Counterparty`, `FilingObligation`, `Correction`, `AuditEvent`
+- All core entities: `TaxReturn`, `Invoice`, `Transaction`, `TaxCode`, `TaxPeriod`, `Counterparty`, `FilingObligation`, `Correction`, `AuditEvent`
 - Entity relationships and cardinality
 - Which fields are jurisdiction-neutral vs jurisdiction-specific
 - A Mermaid ER diagram
 
 ### Task 4 — Technology Stack ADR
-Create `/docs/adr/ADR-002-technology-stack.md` recommending a TypeScript-based stack. Consider and justify:
-- **Runtime:** Node.js 20 LTS
-- **API layer:** Hono or Fastify
-- **Database:** PostgreSQL with immutable append-only event tables
-- **Validation:** Zod (shared between core and jurisdiction plugins)
-- **Testing:** Vitest
-- **Monorepo:** npm workspaces
-- Justify all choices based on the multi-jurisdiction requirement
+Create or update `/docs/adr/ADR-002-technology-stack.md` for the Java/Spring Boot stack. Justify:
+- **Language:** Java 21 — virtual threads (Project Loom) for SKAT API I/O, records and sealed interfaces for domain modeling, `long` for exact monetary arithmetic
+- **Framework:** Spring Boot 3.3 — `spring.threads.virtual.enabled=true`, Spring MVC, Bean Validation
+- **Build:** Gradle 8.x with Kotlin DSL — multi-module incremental builds, type-safe configuration
+- **Database access:** JOOQ (typesafe SQL generated from schema) + Flyway (versioned PostgreSQL migrations)
+- **Testing:** JUnit 5 + Mockito + Testcontainers (real PostgreSQL — not H2)
+- **Database:** PostgreSQL 16 with append-only event tables, row-level security for Bogføringsloven compliance
+- Justify all choices based on the multi-jurisdiction requirement and financial correctness constraints
 
-### Task 5 — Jurisdiction Plugin Architecture ADR (Most Important)
+### Task 5 — Jurisdiction Plugin Architecture ADR
 Create `/docs/adr/ADR-003-jurisdiction-plugin-architecture.md` designing the plugin system:
-- Define the `JurisdictionPlugin` interface that all country implementations must satisfy
-- Define how plugins are registered and resolved at runtime
-- Define how jurisdiction-specific validation rules are loaded
+- Define the `JurisdictionPlugin` Java interface that all country implementations must satisfy
+- Define how plugins are registered and resolved at runtime (Spring `@Component` collection into a `JurisdictionRegistry` bean)
+- Define how jurisdiction-specific validation rules are loaded (custom `ConstraintValidator` beans per jurisdiction)
 - Define how ViDA obligations layer on top of base jurisdiction rules
 - Include a sequence diagram in Mermaid showing how a transaction flows through the jurisdiction plugin system
 - Include a concrete example showing what adding a second jurisdiction (e.g. Norway) would require
 
-### Task 6 — TypeScript Core Interfaces
-Create `/packages/core-domain/src/types.ts` with TypeScript interfaces for all core entities. Requirements:
-- Use generics to support jurisdiction-specific extensions
-- Example patterns to follow:
-  ```typescript
-  type JurisdictionCode = 'DK' | 'NO' | 'DE' // extensible union
-  interface TaxReturn<T extends JurisdictionCode = JurisdictionCode> { ... }
-  interface JurisdictionPlugin<T extends JurisdictionCode> { ... }
-  ```
-- All monetary values must use `bigint` (representing the smallest currency unit, e.g. øre for DKK) — never `number` or `float`
-- All dates must be `string` in ISO 8601 format
-- Include JSDoc comments on every interface and field
+### Task 6 — Java Core Domain Interfaces
+Create the core Java types in `/core-domain/src/main/java/com/netcompany/vat/coredomain/`:
+- Use Java 21 **records** for immutable value objects: `Money`, `TaxCode`, `TaxPeriod`, `AuditEvent`
+- Use Java 21 **sealed interfaces** for discriminated unions: `VatResult` (Payable | Claimable | Zero), `FilingType`
+- Use Java **interfaces** for the plugin SPI: `JurisdictionPlugin`, `TaxRateRegistry`, `ValidationRuleSet`, `FilingScheduleProvider`, `AuthorityApiClient`
+- Use Java **enums** for fixed-value sets: `JurisdictionCode`, `ReturnStatus`, `FilingCadence`
+- All monetary values use `long` (smallest currency unit, øre for DKK) wrapped in `Money` record — never `double` or `float`
+- All dates use `java.time.LocalDate` / `java.time.Instant` — never `String` internally
+- Include Javadoc on every interface and record
 
 ### Task 7 — Danish Jurisdiction Plugin Skeleton
-Create `/packages/core-domain/src/jurisdictions/dk/index.ts` as the first jurisdiction plugin:
-- Implement the `JurisdictionPlugin` interface for Denmark
-- Include Danish VAT rates (standard 25%, zero-rated, exempt categories)
-- Include stub for SKAT API client
-- Include filing cadence rules (quarterly default, monthly for >50M DKK turnover)
-- Mark ViDA fields as `// TODO: Phase 2` placeholders
+Create the DK plugin under `/core-domain/src/main/java/com/netcompany/vat/coredomain/jurisdictions/dk/`:
+- `DkJurisdictionPlugin.java` — implements `JurisdictionPlugin`, annotated `@Component`
+- `DkTaxRateRegistry.java` — implements `TaxRateRegistry` with DK rates (standard 25%, zero, exempt)
+- `DkFilingScheduleProvider.java` — implements `FilingScheduleProvider` with quarterly/monthly threshold logic (>50M DKK → monthly)
+- `DkValidationRuleSet.java` — implements `ValidationRuleSet` with SKAT rubrik field validation
+- Stub `DkAuthorityClient.java` — implements `AuthorityApiClient`, throws `UnsupportedOperationException` until Phase 1 SKAT client is built
+- Mark ViDA fields as `// TODO: Phase 2` placeholders in `VidaConfig`
 
 ## Output Checklist
 Before finishing, verify you have produced:
@@ -100,12 +98,13 @@ Before finishing, verify you have produced:
 - [ ] `/docs/domain-model/core-entities.md` with Mermaid diagram
 - [ ] `/docs/adr/ADR-002-technology-stack.md`
 - [ ] `/docs/adr/ADR-003-jurisdiction-plugin-architecture.md` with Mermaid diagram
-- [ ] `/packages/core-domain/src/types.ts`
-- [ ] `/packages/core-domain/src/jurisdictions/dk/index.ts`
+- [ ] Java domain records and interfaces in `/core-domain/src/main/java/com/netcompany/vat/coredomain/`
+- [ ] Danish jurisdiction plugin skeleton in `/core-domain/src/main/java/com/netcompany/vat/coredomain/jurisdictions/dk/`
 
 ## Constraints
 - Do not write application or infrastructure code — that is the responsibility of other agents
 - Do not make domain assumptions — always verify against MCP tools first
-- All monetary values use `bigint` (øre/smallest currency unit), never floats
+- All monetary values use `long` (øre/smallest currency unit) wrapped in `Money` record — never `double` or `float`
 - All design decisions must explicitly consider the multi-jurisdiction expansion requirement
 - Every ADR must include: Status, Context, Decision, Consequences, and Alternatives Considered
+- No Spring, JOOQ, or infrastructure imports in `/core-domain` — pure Java 21 only
