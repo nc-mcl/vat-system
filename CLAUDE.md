@@ -15,8 +15,8 @@ Built using a multi-agent architecture orchestrated via Claude Code.
 - **Plugin Architecture**: Each jurisdiction implements the `JurisdictionPlugin` interface (tax rates, validation rules, filing schedules, report formats, authority API client, ViDA readiness flag).
 - **Immutability**: VAT records are never deleted, only corrected via credit notes and new events.
 - **Audit First**: Every state change is logged to the audit trail before taking effect.
-- **Rule Isolation**: All VAT business rules live in /packages/tax-engine with zero infrastructure dependencies.
-- **Anti-Corruption Layer**: All external integrations (SKAT, PEPPOL, VIES) are isolated in /packages/skat-client.
+- **Rule Isolation**: All VAT business rules live in /tax-engine with zero infrastructure dependencies.
+- **Anti-Corruption Layer**: All external integrations (SKAT, PEPPOL, VIES) are isolated in /skat-client.
 - **ViDA Ready**: System is designed to support phased ViDA rollout (DRR, extended OSS, platform rules).
 
 ## Plugin Architecture Pattern
@@ -40,13 +40,12 @@ Adding a new country = new plugin only. Zero changes to core packages.
 | Reporting Agent | /agents/reporting-agent | VAT returns, SAF-T, ViDA DRR reports |
 | Testing Agent | /agents/testing-agent | Test suite, compliance validation, SKAT sandbox |
 
-## Package Responsibilities
-- /packages/core-domain — Core entities and `JurisdictionPlugin` interface; jurisdiction plugins live here
-- /packages/tax-engine — Rate calculation, VAT classification, reverse charge logic (no infra dependencies)
-- /packages/invoice-validator — PEPPOL BIS 3.0 validation, Danish e-invoice rules
-- /packages/skat-client — SKAT API client, VIES VAT number validation
-- /packages/reporting — VAT return generation, SAF-T export, ViDA digital reports
-- /packages/audit-trail — Immutable event log, correction chains, Bogføringslov compliance
+## Module Responsibilities (Gradle multi-module)
+- /core-domain — Core entities and `JurisdictionPlugin` interface; jurisdiction plugins live here
+- /tax-engine — Rate calculation, VAT classification, reverse charge logic (no infra dependencies)
+- /persistence — JOOQ data layer, Flyway migrations, immutable event ledger, audit trail
+- /api — Spring Boot REST API, Bean Validation, request/response DTOs
+- /skat-client — SKAT API client, VIES VAT number validation, PEPPOL e-invoice integration
 
 ## Danish VAT Rules (Key References)
 - Standard rate: 25% (MOMS)
@@ -73,12 +72,23 @@ Adding a new country = new plugin only. Zero changes to core packages.
 - `totalInternationalValue` is a derived aggregate of all EU rubrik values
 
 ## Coding Conventions
-- Language: TypeScript (strict mode)
-- Monetary values: `bigint` representing smallest currency unit (øre for DKK) — never `number` or `float`
-- Dates: `string` in ISO 8601 format, always UTC
-- Testing: Vitest — mandatory for all tax-engine logic
-- No framework dependencies in /packages/core-domain or /packages/tax-engine
-- All inter-agent communication uses typed domain objects from /packages/core-domain
+- Language: Java 21 (records, sealed interfaces, pattern matching, virtual threads)
+- Framework: Spring Boot 3.3 (Spring MVC, Spring Data JOOQ, Bean Validation)
+- Build: Gradle 8.x with Kotlin DSL (`build.gradle.kts`), multi-module layout
+- Database access: JOOQ (typesafe SQL generation from schema) + Flyway (versioned migrations)
+- Validation: Jakarta Bean Validation 3.0 (`@NotNull`, `@Valid`, custom `ConstraintValidator`)
+- Testing: JUnit 5 + Mockito + Testcontainers (PostgreSQL) — mandatory for all tax-engine logic
+- Monetary values: `long` representing smallest currency unit (øre for DKK) — never `double` or `float`
+- Monetary arithmetic uses exact integer operations; rates in basis points (2500 = 25.00%)
+- Dates: `java.time.LocalDate` / `java.time.Instant` (UTC); ISO 8601 on the wire
+- Base package: `com.netcompany.vat`
+- No framework dependencies in /core-domain or /tax-engine — pure Java only
+- All inter-agent communication uses typed domain objects from /core-domain
+
+## MCP Server (separate tool — remains TypeScript)
+The MCP server under /mcp-server is a standalone Claude Code tool written in TypeScript/Node.js.
+It is NOT part of the Java backend. It provides business analyst and architect context to Claude agents.
+Do not apply Java conventions to /mcp-server.
 
 ## Key External Resources
 - SKAT API: https://api.skat.dk
