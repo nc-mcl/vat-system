@@ -186,6 +186,35 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
+**Agent:** CI Fix
+**Date:** 2026-02-25
+**Next agent can proceed:** yes
+**Blockers for next agent:** none
+
+### What was done
+
+- **Verified `.github/workflows/ci.yml` action references** — confirmed all fixes were already applied in commit `3d2495e` (Persistence Agent). Current correct state:
+  - `dorny/test-reporter@v2` (was `dorny/tests-reporter@v1` — typo + version)
+  - `actions/checkout@v6` (both jobs)
+  - `actions/setup-java@v5` (both jobs)
+  - `docker/build-push-action@v6`
+  - `docker/setup-buildx-action@v3` — already current
+- **All 68 tax-engine tests still pass** (`BUILD SUCCESSFUL`)
+- **Documentation updated:** CLAUDE.md, README.md status comment, session-log.md
+
+### What the next agent needs to know
+
+1. CI pipeline will now resolve correctly — the `dorny/tests-reporter` 404 that was breaking the `Publish test results` step is fixed.
+2. No Java source was changed; no schema changes; no new dependencies.
+3. On Windows, `GRADLE_OPTS` may be pre-set to `"-Dfile.encoding=UTF-8"` (with literal quotes) which breaks `./gradlew`. Unset it before invoking: `unset GRADLE_OPTS && ./gradlew ...`
+
+### Recommended next agent
+**API Agent** — implement Spring Boot REST endpoints using the persistence layer (see Persistence Agent session above). Everything is in place.
+
+---
+
+## Previous Last Agent Session
+
 **Agent:** Persistence Agent
 **Date:** 2026-02-25
 **Next agent can proceed:** yes

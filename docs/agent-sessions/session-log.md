@@ -358,3 +358,49 @@ None. All three fixes are complete and test suite is green.
 
 Recommended next agent
 Persistence Agent — core-domain types are now at the correct package (com.netcompany.vat.domain), Transaction.vatAmount() is safe for all tax codes, and filing deadlines are SKAT-accurate. The Persistence Agent can implement VatReturnRepository, TransactionRepository, and the Flyway migration schema against these stable domain types.
+
+---
+
+## CI Fix — 2026-02-25
+
+**Session type:** Hotfix
+**Branch:** main
+
+### Problem
+
+CI pipeline was failing with `Unable to resolve action dorny/tests-reporter, repository not found`. The action name was misspelled (`tests-reporter` instead of `test-reporter`) and several other actions were pinned to stale major versions.
+
+### Resolution
+
+All CI fixes were already applied by the Persistence Agent in commit `3d2495e`. This session verified the fixes and updated documentation.
+
+### Verified CI action state
+
+| Action | Was | Is |
+|---|---|---|
+| `dorny/test-reporter` | `tests-reporter@v1` (typo) | `test-reporter@v2` |
+| `actions/checkout` | `@v4` | `@v6` |
+| `actions/setup-java` | `@v4` | `@v5` |
+| `docker/build-push-action` | `@v5` | `@v6` |
+| `docker/setup-buildx-action` | `@v3` | `@v3` (no change) |
+
+### Documentation changes
+
+| File | Change |
+|---|---|
+| `CLAUDE.md` | Last Agent Session updated |
+| `README.md` | Status table comment updated (no status changes) |
+| `docs/agent-sessions/session-log.md` | This entry appended |
+
+### Verification
+
+- `./gradlew :tax-engine:test` — BUILD SUCCESSFUL, 68 tests pass
+- No Java source changed; no schema changes; no new dependencies
+
+### Windows dev note
+
+`GRADLE_OPTS` may be pre-set in Git Bash to `"-Dfile.encoding=UTF-8"` (with literal quotes) causing `Could not find or load main class "-Dfile.encoding=UTF-8"`. Workaround: `unset GRADLE_OPTS && ./gradlew ...`
+
+### Recommended next agent
+
+API Agent — persistence layer is complete; REST endpoints are the next step.

@@ -37,7 +37,7 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | SKAT Integration | ⏳ Pending | SKAT API client, PEPPOL e-invoicing, VIES VAT validation |
 | End-to-End Tests | ⏳ Pending | Full filing scenarios against SKAT sandbox |
 
-<!-- Last updated by: DevOps Agent — 2026-02-25 -->
+<!-- Last updated by: CI Fix — 2026-02-25 (no status changes; CI workflow action refs corrected) -->
 
 ### Phase 1 Roadmap
 
