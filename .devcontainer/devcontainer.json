@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "VAT System Dev Environment",
   "dockerComposeFile": "docker-compose.yml",
   "service": "dev",
@@ -18,7 +18,8 @@
         "editor.formatOnSave": true,
         "editor.tabSize": 4,
         "git.path": "/usr/bin/git",
-        "git.enabled": true
+        "git.enabled": true,
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
@@ -28,5 +29,6 @@
     "5432": { "label": "PostgreSQL" },
     "8090": { "label": "Adminer" }
   },
+  "postStartCommand": "chmod +x /workspace/gradlew",
   "remoteUser": "root"
 }

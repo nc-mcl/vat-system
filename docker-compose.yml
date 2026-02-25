@@ -1,21 +1,16 @@
-﻿services:
+services:
 
-  dev:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-    volumes:
-      - ..:/workspace:cached
-      - gradle-cache:/root/.gradle
-    working_dir: /workspace
-    command: sleep infinity
+      dockerfile: api/Dockerfile
+    ports:
+      - "8080:8080"
     environment:
-      - GRADLE_USER_HOME=/root/.gradle
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=vatdb
-      - DB_USER=vat
-      - DB_PASSWORD=vat_dev_password
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/vatdb
+      - SPRING_DATASOURCE_USERNAME=vat
+      - SPRING_DATASOURCE_PASSWORD=vat_dev_password
+      - SPRING_PROFILES_ACTIVE=local
     depends_on:
       postgres:
         condition: service_healthy
@@ -24,13 +19,13 @@
 
   postgres:
     image: postgres:16-alpine
-    restart: unless-stopped
     environment:
       POSTGRES_DB: vatdb
       POSTGRES_USER: vat
       POSTGRES_PASSWORD: vat_dev_password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/db/migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -43,7 +38,6 @@
 
   adminer:
     image: adminer:latest
-    restart: unless-stopped
     ports:
       - "8090:8080"
     depends_on:
@@ -53,7 +47,6 @@
 
 volumes:
   postgres-data:
-  gradle-cache:
 
 networks:
   vat-network:

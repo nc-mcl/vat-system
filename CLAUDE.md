@@ -186,6 +186,35 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
+**Agent:** DevOps Agent
+**Date:** 2026-02-25
+**Next agent can proceed:** yes
+**Blockers for next agent:** none
+
+### What was done
+- **Fix 1 — `.gitignore`**: Updated to include `**/build/` and `!gradle/wrapper/gradle-wrapper.properties`; removed all tracked `.gradle/` and `build/` files from git index via `git rm --cached`.
+- **Fix 2 — `devcontainer.json`**: Added `"postStartCommand": "chmod +x /workspace/gradlew"` and `"terminal.integrated.defaultProfile.linux": "bash"` setting.
+- **Phase 1 (Dev Container)**: All 3 `.devcontainer/` files verified correct (Dockerfile, docker-compose.yml, devcontainer.json). `gradlew DEFAULT_JVM_OPTS` was already clean.
+- **Phase 2 (Docker)**: Created `api/Dockerfile` — multi-stage build (eclipse-temurin:21-jdk-jammy builder → eclipse-temurin:21-jre-alpine runtime), non-root `vatuser`, HEALTHCHECK, container-aware JVM flags. Created root `docker-compose.yml` (api + postgres + adminer).
+- **Phase 3 (CI/CD)**: Created `.github/workflows/ci.yml` — `test` job (Gradle build + postgres service container + JUnit test reporter) + `build-image` job (Docker Buildx, main branch only, GHA cache).
+- **Phase 4 (Kubernetes)**: Created all 8 manifests — namespace, secrets-template, api/deployment, api/service, api/configmap, api/hpa, postgres/statefulset, postgres/service. All pass `kubectl apply --dry-run=client`.
+- **Phase 5 (Observability)**: Created `api/src/main/resources/logback-spring.xml` — structured JSON logging (LogstashEncoder) for non-local profiles; human-readable console for `local` profile.
+- **infrastructure/README.md**: Created with dev container setup, local docker-compose usage, Kubernetes deployment steps, CI/CD overview, and add-new-service guide.
+
+### What the next agent needs to know
+1. **Kubernetes secrets** — `vat-secrets` (db-password, skat-api-key) must be created manually via `kubectl create secret`; the template at `infrastructure/k8s/cluster/secrets-template.yaml` shows the shape.
+2. **logstash-logback-encoder dependency** — `api/build.gradle.kts` must add `net.logstash.logback:logstash-logback-encoder` when the API module is built out. The Persistence Agent or API agent should add this when they add Spring Boot dependencies.
+3. **`infrastructure/db/migrations/`** exists but is empty — Flyway migration scripts go here (Persistence Agent's job).
+4. **Docker image build** will fail until `api` has a `bootJar` task (requires Spring Boot plugin in `api/build.gradle.kts`). The `api/Dockerfile` is ready; only the Gradle build wiring is missing.
+5. **68 tests still pass** — no Java source was modified.
+
+### Recommended next agent
+**Persistence Agent** — implement JOOQ/Flyway data layer: add `api/build.gradle.kts` Spring Boot plugin, write Flyway migrations in `infrastructure/db/migrations/`, implement repositories. The DevOps scaffolding is in place.
+
+---
+
+## Previous Last Agent Session
+
 **Agent:** Pre-Persistence Fixup (Codex)
 **Date:** 2026-02-24
 **Next agent can proceed:** yes
