@@ -1,0 +1,30 @@
+﻿{
+  "name": "VAT System Dev Environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-gradle",
+        "redhat.java",
+        "vscjava.vscode-java-test",
+        "bierner.markdown-mermaid",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4
+      }
+    }
+  },
+  "forwardPorts": [8080, 5432, 8090],
+  "portsAttributes": {
+    "8080": { "label": "VAT API" },
+    "5432": { "label": "PostgreSQL" },
+    "8090": { "label": "Adminer" }
+  },
+  "remoteUser": "root"
+}
