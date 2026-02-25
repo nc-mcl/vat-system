@@ -159,6 +159,12 @@ This starts:
 Open the project in VS Code and select **Reopen in Container** when prompted.
 The container includes Java 21, Gradle, and all tooling pre-configured.
 
+## Devcontainer Troubleshooting (Windows/WSL)
+
+- Prereq: Use a modern WSL2 distro as the default (Ubuntu 22.04 recommended). Check with `wsl --list --verbose` and set with `wsl --set-default Ubuntu-22.04`.
+- If you see `Dockerfile-with-features` failing with `unknown instruction: FROM (`, ensure `.devcontainer/Dockerfile` is UTF-8 without BOM and uses LF line endings.
+- Smoke test the setup from PowerShell: `.\scripts\devcontainer-smoketest.ps1` (add `-Start` to launch the dev container).
+
 ### Build and test (Java)
 
 ```bash

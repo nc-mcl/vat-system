@@ -388,3 +388,55 @@ Every directory that contains runnable or deployable code must have a README.md.
 
 \- \*\*All services\*\* must emit OpenTelemetry traces
 
+## Mandatory: Update the Project Status README
+
+Every agent MUST update the project status table in the root `README.md` as part of its handoff.
+This is non-negotiable and must be the last thing you do before printing the Handoff Summary.
+
+### How to do it
+
+1. Open `README.md` at the project root
+2. Find the section marked with the comment `<!-- BUILD_STATUS_TABLE -->`
+3. Update the `Status` column for any layer you worked on:
+   - `✅ Done` — fully implemented, tested, committed
+   - `🔄 In Progress` — started but not complete
+   - `⏳ Pending` — not yet started
+4. Update the description for your layer to reflect what was actually built
+5. Update the `<!-- Last updated by: -->` comment at the bottom of the table with your agent name and today's date
+
+### Status values by agent
+
+| Agent | Layer to update |
+|---|---|
+| Persistence Agent | Persistence |
+| API Agent | REST API |
+| Integration Agent | SKAT Integration |
+| Testing Agent | End-to-End Tests |
+
+Do not change rows for layers you did not work on.
+
+## Mandatory: Append to the Agent Session Log
+
+Every agent MUST append an entry to `docs/agent-sessions/session-log.md` as part of its handoff.
+This is non-negotiable and must happen before printing the Handoff Summary.
+
+### How to do it
+
+1. Open `docs/agent-sessions/session-log.md`
+2. Find the line `<!-- APPEND NEW SESSIONS ABOVE THIS LINE -->`
+3. Insert a new session entry **above** that line using exactly this format:
+```markdown
+## Session {N} — {Agent Name}
+**Date:** {today's date}
+**Status on entry:** {one sentence — what state was the system in when you started}
+**Status on exit:** {one sentence — what state is the system in now}
+
+### What Was Done
+- {bullet per significant action — be specific, include file names}
+
+### What the Next Agent Needs to Know
+- {any blockers, gotchas, advisory items, or open decisions}
+
+### Next Agent
+**{Name of the recommended next agent}**
+
