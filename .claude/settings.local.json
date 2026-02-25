@@ -48,7 +48,9 @@
       "Bash(docker:*)",
       "Bash(echo api unavailable:*)",
       "Bash(python3:*)",
-      "Bash(wsl docker:*)"
+      "Bash(wsl docker:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(cmd.exe:*)"
     ]
   }
 }

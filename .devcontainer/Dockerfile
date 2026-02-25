@@ -1,4 +1,4 @@
-﻿FROM eclipse-temurin:21-jdk-jammy
+FROM eclipse-temurin:21-jdk-jammy
 
 # Install base tools
 RUN apt-get update -qq && \

@@ -186,6 +186,47 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
+**Agent:** Persistence Agent
+**Date:** 2026-02-25
+**Next agent can proceed:** yes
+**Blockers for next agent:** none
+
+### What was done
+
+- **Flyway migrations** (3 files in both `infrastructure/db/migrations/` and `persistence/src/main/resources/db/migration/`):
+  - `V001__create_schema.sql` — `counterparties`, `tax_periods`, `transactions`, `vat_returns`, `corrections`
+  - `V002__create_audit_log.sql` — immutable `audit_log` (BIGSERIAL PK, JSONB payload, Bogføringsloven comment)
+  - `V003__create_indexes.sql` — composite indexes for API query patterns
+- **`persistence/build.gradle.kts`** — added `jackson-databind`, `logstash-logback-encoder:7.4` (DevOps handoff requirement), registered `src/main/generated` as source set for future JOOQ code gen
+- **Repository interfaces** — `TaxPeriodRepository`, `TransactionRepository`, `VatReturnRepository`, `CounterpartyRepository`, `CorrectionRepository` in `com.netcompany.vat.persistence.repository`
+- **JOOQ implementations** — `JooqXxx` classes using dynamic DSL (`DSL.table()`, `DSL.field()`); no code gen needed to compile
+- **Audit** — `AuditEvent` record + `AuditLogger` interface + `JooqAuditLogger` (append-only, no delete path)
+- **Mappers** — 5 pure-function mapper classes converting JOOQ `Record` → domain objects; `VatReturnMapper` handles JSONB deserialization of `jurisdictionFields`
+- **`PersistenceConfiguration`** — `@Configuration` class that registers all repos and `AuditLogger` as Spring beans; `@ConditionalOnMissingBean(ObjectMapper)` fallback
+- **`application-persistence.yml`** — DataSource, Flyway, JOOQ dialect defaults with env-variable overrides
+- **Integration tests** (5 IT classes) — `FlywayMigrationIT`, `TaxPeriodRepositoryIT`, `TransactionRepositoryIT`, `VatReturnRepositoryIT`, `AuditLoggerIT`; all skip gracefully when Docker is not accessible from the Java process (Windows Docker Desktop issue); they run in CI
+- **`persistence/README.md`** — full documentation including Docker Desktop setup instructions for Windows
+- **`~/.testcontainers.properties`** — created with `docker.host=npipe:////./pipe/dockerDesktopLinuxEngine` for future use when Docker Desktop TCP is enabled
+- **All 68 existing tax-engine tests still pass** (verified with `./gradlew :tax-engine:test`)
+
+### What the next agent (API Agent) needs to know
+
+1. **Repository beans** — all 5 repository interfaces are Spring beans registered via `PersistenceConfiguration`. Import or component-scan `com.netcompany.vat.persistence` in the API module.
+2. **`AuditLogger` bean** — available as a Spring bean; must be called before every state-changing operation.
+3. **Flyway** — migrations are in `persistence/src/main/resources/db/migration/`; they run automatically on Spring Boot startup when `spring.flyway.locations=classpath:db/migration` is set (see `application-persistence.yml`).
+4. **DataSource** — configured via `DB_URL`, `DB_USER`, `DB_PASSWORD` env variables (defaults match `docker-compose.yml`).
+5. **`logstash-logback-encoder:7.4`** — added to `persistence/build.gradle.kts`. The `api` module also needs it for structured logging; add to `api/build.gradle.kts`.
+6. **JOOQ code generation** — repositories use dynamic DSL; add `nu.studer.jooq` v9 plugin to `persistence/build.gradle.kts` to generate type-safe classes when schema stabilises.
+7. **Integration tests require Docker TCP** — on Windows with Docker Desktop, enable "Expose daemon on tcp://localhost:2375" for local IT runs; CI (Linux) works with default socket.
+8. **`TaxPeriodRepository.save(period, filingDeadline)`** — takes an explicit `LocalDate filingDeadline` because the domain `TaxPeriod` record doesn't store it; compute via `JurisdictionPlugin.calculateFilingDeadline()` at the service layer before calling the repository.
+
+### Recommended next agent
+**API Agent** — implement Spring Boot REST endpoints using the repository interfaces. The persistence layer is complete and all beans are available.
+
+---
+
+## Previous Last Agent Session
+
 **Agent:** DevOps Agent
 **Date:** 2026-02-25
 **Next agent can proceed:** yes
