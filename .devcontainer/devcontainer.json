@@ -16,7 +16,9 @@
       "settings": {
         "java.configuration.updateBuildConfiguration": "automatic",
         "editor.formatOnSave": true,
-        "editor.tabSize": 4
+        "editor.tabSize": 4,
+        "git.path": "/usr/bin/git",
+        "git.enabled": true
       }
     }
   },
