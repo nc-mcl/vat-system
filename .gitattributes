@@ -1,0 +1,10 @@
+﻿# Force Unix line endings for shell scripts
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Force Windows line endings for Windows scripts  
+gradlew.bat text eol=crlf
+*.bat text eol=crlf
+
+# Auto-detect everything else
+* text=auto
