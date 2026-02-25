@@ -23,13 +23,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Phase 1 proof-of-life integration test.
  *
- * <p>Exercises the full VAT filing flow end-to-end against a real PostgreSQL database:
+ * <p>Exercises the full VAT filing flow end-to-end against a real PostgreSQL database
+ * with the SKAT stub configured for ACCEPTED responses (default):
  * <ol>
  *   <li>POST /api/v1/periods → 201</li>
  *   <li>POST /api/v1/transactions ×3 (mix of STANDARD and ZERO_RATED) → 201 each</li>
  *   <li>POST /api/v1/returns/assemble → 201, verify netVat is correct</li>
- *   <li>POST /api/v1/returns/{id}/submit → 202</li>
- *   <li>GET /api/v1/returns/{id} → verify status is SUBMITTED</li>
+ *   <li>POST /api/v1/returns/{id}/submit → 202, status=ACCEPTED, skatReference non-null</li>
+ *   <li>GET /api/v1/returns/{id} → verify status=ACCEPTED, skatReference non-null</li>
  * </ol>
  *
  * <p>Requires Docker to be accessible from the JVM process. On Windows with Docker Desktop,
@@ -162,22 +163,25 @@ class VatFilingFlowIT {
         long netVat = netVatObj instanceof Number n ? n.longValue() : Long.parseLong(netVatObj.toString());
         assertThat(netVat).isEqualTo(75_000L);
 
-        // ── Step 4: Submit the return ─────────────────────────────────────────
+        // ── Step 4: Submit the return — SKAT stub responds ACCEPTED ──────────
         ResponseEntity<Map> submitResp = restTemplate.postForEntity(
                 base + "/api/v1/returns/" + returnId + "/submit",
                 new HttpEntity<>(null, headers),
                 Map.class);
         assertThat(submitResp.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
-        assertThat(submitResp.getBody().get("status")).isEqualTo("SUBMITTED");
+        assertThat(submitResp.getBody().get("status")).isEqualTo("ACCEPTED");
+        assertThat(submitResp.getBody().get("skatReference")).isNotNull();
 
-        // ── Step 5: Verify status is SUBMITTED ───────────────────────────────
+        // ── Step 5: Verify GET returns ACCEPTED with skatReference ────────────
         ResponseEntity<Map> getResp = restTemplate.getForEntity(
                 base + "/api/v1/returns/" + returnId,
                 Map.class);
         assertThat(getResp.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(getResp.getBody().get("status")).isEqualTo("SUBMITTED");
+        assertThat(getResp.getBody().get("status")).isEqualTo("ACCEPTED");
+        assertThat(getResp.getBody().get("skatReference")).isNotNull();
+        assertThat(getResp.getBody().get("resultType")).isEqualTo("PAYABLE");
 
-        // ── Bonus: Verify period is locked (FILED) ────────────────────────────
+        // ── Bonus: Verify period is locked (FILED) after return assembly ──────
         ResponseEntity<Map> periodGetResp = restTemplate.getForEntity(
                 base + "/api/v1/periods/" + periodId,
                 Map.class);
@@ -215,13 +219,14 @@ class VatFilingFlowIT {
         assertThat(assembleResp.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         String returnId = (String) assembleResp.getBody().get("id");
 
-        // Submit once — 202
+        // Submit once — 202 (SKAT stub → ACCEPTED)
         ResponseEntity<Map> submit1 = restTemplate.postForEntity(
                 base + "/api/v1/returns/" + returnId + "/submit",
                 new HttpEntity<>(null, headers), Map.class);
         assertThat(submit1.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(submit1.getBody().get("status")).isEqualTo("ACCEPTED");
 
-        // Submit again — 409
+        // Submit again — 409 (status is ACCEPTED, not DRAFT)
         ResponseEntity<Map> submit2 = restTemplate.postForEntity(
                 base + "/api/v1/returns/" + returnId + "/submit",
                 new HttpEntity<>(null, headers), Map.class);

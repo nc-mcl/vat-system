@@ -1,5 +1,6 @@
 package com.netcompany.vat.domain;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,6 +25,10 @@ import java.util.UUID;
  * @param status               current lifecycle status
  * @param jurisdictionFields   authority-specific fields (e.g. SKAT rubrik values for DK).
  *                             Keys and value formats are defined by the jurisdiction plugin.
+ * @param assembledAt          timestamp when the return was assembled, or null
+ * @param submittedAt          timestamp when the return was submitted to the authority, or null
+ * @param acceptedAt           timestamp when the authority accepted the return, or null
+ * @param skatReference        authority reference number assigned on acceptance, or null
  */
 public record VatReturn(
         UUID id,
@@ -35,12 +40,17 @@ public record VatReturn(
         ResultType resultType,
         MonetaryAmount claimAmount,
         VatReturnStatus status,
-        Map<String, Object> jurisdictionFields
+        Map<String, Object> jurisdictionFields,
+        Instant assembledAt,
+        Instant submittedAt,
+        Instant acceptedAt,
+        String skatReference
 ) {
 
     /**
      * Factory method that derives {@code netVat}, {@code resultType}, and {@code claimAmount}
      * automatically from {@code outputVat} and {@code inputVatDeductible}.
+     * Timestamp fields default to {@code null}.
      */
     public static VatReturn of(
             UUID id,
@@ -50,6 +60,27 @@ public record VatReturn(
             MonetaryAmount inputVatDeductible,
             VatReturnStatus status,
             Map<String, Object> jurisdictionFields
+    ) {
+        return of(id, jurisdictionCode, periodId, outputVat, inputVatDeductible,
+                status, jurisdictionFields, null, null, null, null);
+    }
+
+    /**
+     * Full factory method that derives {@code netVat}, {@code resultType}, and {@code claimAmount}
+     * automatically, and accepts nullable lifecycle timestamp fields.
+     */
+    public static VatReturn of(
+            UUID id,
+            JurisdictionCode jurisdictionCode,
+            UUID periodId,
+            MonetaryAmount outputVat,
+            MonetaryAmount inputVatDeductible,
+            VatReturnStatus status,
+            Map<String, Object> jurisdictionFields,
+            Instant assembledAt,
+            Instant submittedAt,
+            Instant acceptedAt,
+            String skatReference
     ) {
         MonetaryAmount netVat = outputVat.subtract(inputVatDeductible);
         ResultType resultType;
@@ -70,7 +101,8 @@ public record VatReturn(
                 id, jurisdictionCode, periodId,
                 outputVat, inputVatDeductible,
                 netVat, resultType, claimAmount,
-                status, jurisdictionFields
+                status, jurisdictionFields,
+                assembledAt, submittedAt, acceptedAt, skatReference
         );
     }
 }

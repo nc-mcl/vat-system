@@ -19,6 +19,10 @@ import com.netcompany.vat.persistence.audit.AuditLogger;
 import com.netcompany.vat.persistence.repository.TaxPeriodRepository;
 import com.netcompany.vat.persistence.repository.TransactionRepository;
 import com.netcompany.vat.persistence.repository.VatReturnRepository;
+import com.netcompany.vat.skatclient.SkatClient;
+import com.netcompany.vat.skatclient.SkatSubmissionResult;
+import com.netcompany.vat.skatclient.SkatUnavailableException;
+import com.netcompany.vat.skatclient.SubmissionStatus;
 import com.netcompany.vat.taxengine.TaxEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,10 +31,10 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,6 +53,7 @@ class VatReturnControllerTest {
     @Mock private AuditLogger auditLogger;
     @Mock private JurisdictionRegistry registry;
     @Mock private TaxEngine taxEngine;
+    @Mock private SkatClient skatClient;
 
     private VatReturnController controller;
 
@@ -56,17 +61,20 @@ class VatReturnControllerTest {
     private final UUID returnId = UUID.randomUUID();
     private TaxPeriod openPeriod;
     private VatReturn draftReturn;
+    private VatReturn acceptedReturn;
 
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
         controller = new VatReturnController(
-                taxPeriodRepository, transactionRepository, vatReturnRepository, auditLogger, registry);
+                taxPeriodRepository, transactionRepository, vatReturnRepository,
+                auditLogger, registry, skatClient);
 
         openPeriod = new TaxPeriod(periodId, JurisdictionCode.DK,
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
                 FilingCadence.QUARTERLY, TaxPeriodStatus.OPEN);
 
+        // 10 domain fields + 4 nullable timestamp/reference fields
         draftReturn = new VatReturn(
                 returnId, JurisdictionCode.DK, periodId,
                 MonetaryAmount.ofOere(250_000L),
@@ -75,7 +83,23 @@ class VatReturnControllerTest {
                 ResultType.PAYABLE,
                 MonetaryAmount.ZERO,
                 VatReturnStatus.DRAFT,
-                Collections.emptyMap()
+                Collections.emptyMap(),
+                null, null, null, null
+        );
+
+        acceptedReturn = new VatReturn(
+                returnId, JurisdictionCode.DK, periodId,
+                MonetaryAmount.ofOere(250_000L),
+                MonetaryAmount.ofOere(50_000L),
+                MonetaryAmount.ofOere(200_000L),
+                ResultType.PAYABLE,
+                MonetaryAmount.ZERO,
+                VatReturnStatus.ACCEPTED,
+                Collections.emptyMap(),
+                Instant.parse("2026-01-15T10:00:00Z"),
+                null,
+                Instant.parse("2026-01-15T10:00:01Z"),
+                "SKAT-STUB-ABC123"
         );
 
         when(registry.getTaxEngine(JurisdictionCode.DK)).thenReturn(taxEngine);
@@ -124,16 +148,58 @@ class VatReturnControllerTest {
     }
 
     @Test
-    void submitReturn_happyPath_returns202() {
-        when(vatReturnRepository.findById(returnId)).thenReturn(Optional.of(draftReturn));
-        when(vatReturnRepository.updateStatus(eq(returnId), eq(VatReturnStatus.SUBMITTED), any()))
-                .thenReturn(draftReturn);
+    void submitReturn_happyPath_skatAccepted_returns202WithAccepted() {
+        SkatSubmissionResult skatResult = new SkatSubmissionResult(
+                "SKAT-STUB-ABC123", SubmissionStatus.ACCEPTED,
+                "Accepted (stub)", Instant.now());
 
-        ResponseEntity<Map<String, Object>> response = controller.submitReturn(returnId);
+        when(vatReturnRepository.findById(returnId)).thenReturn(Optional.of(draftReturn));
+        when(skatClient.submitReturn(draftReturn)).thenReturn(skatResult);
+        when(vatReturnRepository.updateStatusAndReference(
+                eq(returnId), eq(VatReturnStatus.ACCEPTED), any(), eq("SKAT-STUB-ABC123")))
+                .thenReturn(acceptedReturn);
+
+        ResponseEntity<VatReturnResponse> response = controller.submitReturn(returnId);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
-        assertThat(response.getBody()).containsEntry("status", "SUBMITTED");
-        verify(auditLogger).log(any());
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().status()).isEqualTo("ACCEPTED");
+        assertThat(response.getBody().skatReference()).isEqualTo("SKAT-STUB-ABC123");
+    }
+
+    @Test
+    void submitReturn_skatRejects_returns202WithRejected() {
+        SkatSubmissionResult skatResult = new SkatSubmissionResult(
+                "SKAT-STUB-REJ001", SubmissionStatus.REJECTED,
+                "Validation error DK-VAT-001 (stub)", Instant.now());
+
+        VatReturn rejectedReturn = new VatReturn(
+                returnId, JurisdictionCode.DK, periodId,
+                MonetaryAmount.ofOere(250_000L), MonetaryAmount.ofOere(50_000L),
+                MonetaryAmount.ofOere(200_000L), ResultType.PAYABLE, MonetaryAmount.ZERO,
+                VatReturnStatus.REJECTED, Collections.emptyMap(),
+                null, null, Instant.now(), null
+        );
+
+        when(vatReturnRepository.findById(returnId)).thenReturn(Optional.of(draftReturn));
+        when(skatClient.submitReturn(draftReturn)).thenReturn(skatResult);
+        when(vatReturnRepository.updateStatusAndReference(
+                eq(returnId), eq(VatReturnStatus.REJECTED), any(), eq(null)))
+                .thenReturn(rejectedReturn);
+
+        ResponseEntity<VatReturnResponse> response = controller.submitReturn(returnId);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(response.getBody().status()).isEqualTo("REJECTED");
+    }
+
+    @Test
+    void submitReturn_skatUnavailable_throwsSkatUnavailableException() {
+        when(vatReturnRepository.findById(returnId)).thenReturn(Optional.of(draftReturn));
+        when(skatClient.submitReturn(draftReturn))
+                .thenThrow(new SkatUnavailableException("SKAT is down (stub)"));
+
+        assertThrows(SkatUnavailableException.class, () -> controller.submitReturn(returnId));
     }
 
     @Test
@@ -149,7 +215,8 @@ class VatReturnControllerTest {
                 returnId, JurisdictionCode.DK, periodId,
                 MonetaryAmount.ofOere(250_000L), MonetaryAmount.ofOere(50_000L),
                 MonetaryAmount.ofOere(200_000L), ResultType.PAYABLE, MonetaryAmount.ZERO,
-                VatReturnStatus.SUBMITTED, Collections.emptyMap());
+                VatReturnStatus.ACCEPTED, Collections.emptyMap(),
+                null, null, Instant.now(), "SKAT-STUB-XYZ");
         when(vatReturnRepository.findById(returnId)).thenReturn(Optional.of(submittedReturn));
 
         assertThrows(InvalidPeriodStateException.class, () -> controller.submitReturn(returnId));

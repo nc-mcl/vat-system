@@ -52,7 +52,8 @@
       "WebFetch(domain:github.com)",
       "Bash(cmd.exe:*)",
       "Bash(GRADLE_USER_HOME=\"C:/Temp/gradle-user-home\" JAVA_HOME=\"/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.3/jbr\" bash:*)",
-      "Bash(cd /c/Work/ClaudeCode/vat-system && unset GRADLE_OPTS && JAVA_HOME=\"/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.3/jbr\" GRADLE_USER_HOME=\"C:/Temp/gradle-user-home\" ./gradlew :tax-engine:test --no-daemon 2>&1)"
+      "Bash(cd /c/Work/ClaudeCode/vat-system && unset GRADLE_OPTS && JAVA_HOME=\"/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.3/jbr\" GRADLE_USER_HOME=\"C:/Temp/gradle-user-home\" ./gradlew :tax-engine:test --no-daemon 2>&1)",
+      "Bash(cd /c/Work/ClaudeCode/vat-system && unset GRADLE_OPTS && JAVA_HOME=\"/c/Program Files/JetBrains/IntelliJ IDEA 2025.3.3/jbr\" GRADLE_USER_HOME=\"C:/Temp/gradle-user-home\" ./gradlew :skat-client:test :api:test :tax-engine:test :core-domain:test --no-daemon 2>&1)"
     ]
   }
 }

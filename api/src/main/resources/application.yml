@@ -1,6 +1,6 @@
 spring:
   profiles:
-    include: persistence
+    include: persistence,skat
   application:
     name: vat-api
   threads:

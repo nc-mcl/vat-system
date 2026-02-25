@@ -35,7 +35,9 @@ public class JooqVatReturnRepository implements VatReturnRepository {
 
     @Override
     public VatReturn save(VatReturn vatReturn) {
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        Instant assembledAt = Instant.now();
+        OffsetDateTime assembledAtOdt = assembledAt.atOffset(ZoneOffset.UTC);
+        OffsetDateTime now = assembledAtOdt;
         JSONB jurisdictionFieldsJson = toJsonb(vatReturn.jurisdictionFields());
 
         long rubrikA = toLong(vatReturn.jurisdictionFields().get("rubrikA"));
@@ -55,6 +57,7 @@ public class JooqVatReturnRepository implements VatReturnRepository {
                         field("jurisdiction_fields"),
                         field("rubrik_a"),
                         field("rubrik_b"),
+                        field("assembled_at"),
                         field("created_at"),
                         field("updated_at")
                 )
@@ -71,11 +74,26 @@ public class JooqVatReturnRepository implements VatReturnRepository {
                         jurisdictionFieldsJson,
                         rubrikA,
                         rubrikB,
+                        assembledAtOdt,
                         now,
                         now
                 )
                 .execute();
-        return vatReturn;
+
+        // Return a new record with assembledAt populated
+        return VatReturn.of(
+                vatReturn.id(),
+                vatReturn.jurisdictionCode(),
+                vatReturn.periodId(),
+                vatReturn.outputVat(),
+                vatReturn.inputVatDeductible(),
+                vatReturn.status(),
+                vatReturn.jurisdictionFields(),
+                assembledAt,
+                null,
+                null,
+                null
+        );
     }
 
     @Override
@@ -102,23 +120,32 @@ public class JooqVatReturnRepository implements VatReturnRepository {
 
     @Override
     public VatReturn updateStatus(UUID id, VatReturnStatus status, Instant timestamp) {
-        OffsetDateTime ts = timestamp.atOffset(ZoneOffset.UTC);
+        return updateStatusAndReference(id, status, timestamp, null);
+    }
+
+    @Override
+    public VatReturn updateStatusAndReference(UUID id, VatReturnStatus status, Instant timestamp, String skatReference) {
+        OffsetDateTime ts = timestamp != null ? timestamp.atOffset(ZoneOffset.UTC) : null;
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
-        // Update status and updated_at
         ctx.update(table("vat_returns"))
                 .set(field("status"), status.name())
                 .set(field("updated_at"), now)
                 .where(field("id", UUID.class).eq(id))
                 .execute();
 
-        // Update the appropriate lifecycle timestamp
-        if (status == VatReturnStatus.SUBMITTED) {
+        if (status == VatReturnStatus.SUBMITTED && ts != null) {
             ctx.update(table("vat_returns"))
                     .set(field("submitted_at"), ts)
                     .where(field("id", UUID.class).eq(id))
                     .execute();
-        } else if (status == VatReturnStatus.ACCEPTED) {
+        } else if (status == VatReturnStatus.ACCEPTED && ts != null) {
+            ctx.update(table("vat_returns"))
+                    .set(field("accepted_at"), ts)
+                    .set(field("skat_reference"), skatReference)
+                    .where(field("id", UUID.class).eq(id))
+                    .execute();
+        } else if (status == VatReturnStatus.REJECTED && ts != null) {
             ctx.update(table("vat_returns"))
                     .set(field("accepted_at"), ts)
                     .where(field("id", UUID.class).eq(id))
@@ -126,7 +153,7 @@ public class JooqVatReturnRepository implements VatReturnRepository {
         }
 
         return findById(id)
-                .orElseThrow(() -> new IllegalStateException("VatReturn not found: " + id));
+                .orElseThrow(() -> new IllegalStateException("VatReturn not found after status update: " + id));
     }
 
     private JSONB toJsonb(Map<String, Object> fields) {

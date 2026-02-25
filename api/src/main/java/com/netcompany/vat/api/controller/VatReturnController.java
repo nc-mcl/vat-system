@@ -17,6 +17,9 @@ import com.netcompany.vat.persistence.audit.AuditLogger;
 import com.netcompany.vat.persistence.repository.TaxPeriodRepository;
 import com.netcompany.vat.persistence.repository.TransactionRepository;
 import com.netcompany.vat.persistence.repository.VatReturnRepository;
+import com.netcompany.vat.skatclient.SkatClient;
+import com.netcompany.vat.skatclient.SkatSubmissionResult;
+import com.netcompany.vat.skatclient.SubmissionStatus;
 import com.netcompany.vat.taxengine.TaxEngine;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,7 +38,7 @@ import java.util.UUID;
  *
  * <p>Base path: {@code /api/v1/returns}
  *
- * <p>Lifecycle: DRAFT → SUBMITTED (→ ACCEPTED / REJECTED by Integration Agent).
+ * <p>Lifecycle: DRAFT → submit → ACCEPTED (or REJECTED by SKAT).
  */
 @RestController
 @RequestMapping("/api/v1/returns")
@@ -47,18 +50,21 @@ public class VatReturnController {
     private final VatReturnRepository vatReturnRepository;
     private final AuditLogger auditLogger;
     private final JurisdictionRegistry registry;
+    private final SkatClient skatClient;
 
     public VatReturnController(
             TaxPeriodRepository taxPeriodRepository,
             TransactionRepository transactionRepository,
             VatReturnRepository vatReturnRepository,
             AuditLogger auditLogger,
-            JurisdictionRegistry registry) {
+            JurisdictionRegistry registry,
+            SkatClient skatClient) {
         this.taxPeriodRepository = taxPeriodRepository;
         this.transactionRepository = transactionRepository;
         this.vatReturnRepository = vatReturnRepository;
         this.auditLogger = auditLogger;
         this.registry = registry;
+        this.skatClient = skatClient;
     }
 
     /**
@@ -117,17 +123,16 @@ public class VatReturnController {
     }
 
     /**
-     * Submits a DRAFT VAT return.
+     * Submits a DRAFT VAT return to SKAT.
      *
-     * <p><strong>Note:</strong> SKAT integration is not yet implemented.
-     * This endpoint transitions the return to SUBMITTED status and returns 202 Accepted.
-     * The Integration Agent will replace this stub with a real SKAT API call.
+     * <p>Calls the SKAT client (Phase 1: stub) and transitions the return to
+     * {@code ACCEPTED} or {@code REJECTED} based on the authority response.
      *
-     * @return 202 Accepted
+     * @return 202 Accepted with the updated return (status ACCEPTED or REJECTED)
      */
     @PostMapping("/{id}/submit")
-    @Operation(summary = "Submit a VAT return to SKAT (stub — Integration Agent pending)")
-    public ResponseEntity<Map<String, Object>> submitReturn(@PathVariable UUID id) {
+    @Operation(summary = "Submit a VAT return to SKAT")
+    public ResponseEntity<VatReturnResponse> submitReturn(@PathVariable UUID id) {
         VatReturn vatReturn = vatReturnRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("VAT return not found: " + id));
 
@@ -136,26 +141,54 @@ public class VatReturnController {
                     "VAT return " + id + " cannot be submitted — current status: " + vatReturn.status());
         }
 
-        // Audit first
+        // Audit submission attempt before calling external system
         auditLogger.log(new AuditEvent(
                 "VatReturn", id, "RETURN_SUBMITTED", "system",
                 Map.of(
                         "returnId", id.toString(),
-                        "previousStatus", VatReturnStatus.DRAFT.name(),
-                        "newStatus", VatReturnStatus.SUBMITTED.name()
+                        "periodId", vatReturn.periodId().toString()
                 ),
                 vatReturn.jurisdictionCode()
         ));
 
-        vatReturnRepository.updateStatus(id, VatReturnStatus.SUBMITTED, Instant.now());
+        // Call SKAT — SkatUnavailableException propagates to GlobalExceptionHandler → 503
+        SkatSubmissionResult skatResult = skatClient.submitReturn(vatReturn);
 
-        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(Map.of(
-                        "id", id.toString(),
-                        "status", VatReturnStatus.SUBMITTED.name(),
-                        "note", "SKAT filing is pending the Integration Agent. " +
-                                "The return has been queued for submission."
-                ));
+        VatReturn updated;
+        if (skatResult.status() == SubmissionStatus.ACCEPTED) {
+            updated = vatReturnRepository.updateStatusAndReference(
+                    id,
+                    VatReturnStatus.ACCEPTED,
+                    skatResult.processedAt() != null ? skatResult.processedAt() : Instant.now(),
+                    skatResult.skatReference()
+            );
+            auditLogger.log(new AuditEvent(
+                    "VatReturn", id, "RETURN_ACCEPTED", "system",
+                    Map.of(
+                            "skatReference", skatResult.skatReference() != null ? skatResult.skatReference() : "",
+                            "message", skatResult.message() != null ? skatResult.message() : ""
+                    ),
+                    vatReturn.jurisdictionCode()
+            ));
+        } else {
+            // REJECTED or PENDING
+            updated = vatReturnRepository.updateStatusAndReference(
+                    id,
+                    VatReturnStatus.REJECTED,
+                    skatResult.processedAt() != null ? skatResult.processedAt() : Instant.now(),
+                    null
+            );
+            auditLogger.log(new AuditEvent(
+                    "VatReturn", id, "RETURN_REJECTED", "system",
+                    Map.of(
+                            "status", skatResult.status().name(),
+                            "message", skatResult.message() != null ? skatResult.message() : ""
+                    ),
+                    vatReturn.jurisdictionCode()
+            ));
+        }
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(toResponse(updated));
     }
 
     /**
@@ -206,10 +239,10 @@ public class VatReturnController {
                 rubrikA,
                 rubrikB,
                 r.status().name(),
-                null,   // assembledAt — not stored in domain record; Integration Agent may populate
-                null,   // submittedAt
-                null,   // acceptedAt
-                null    // skatReference
+                r.assembledAt() != null ? r.assembledAt().toString() : null,
+                r.submittedAt() != null ? r.submittedAt().toString() : null,
+                r.acceptedAt() != null ? r.acceptedAt().toString() : null,
+                r.skatReference()
         );
     }
 

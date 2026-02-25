@@ -186,28 +186,33 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** Audit Agent
+**Agent:** Integration Agent
 **Date:** 2026-02-25
 **Next agent can proceed:** yes
 **Blockers for next agent:** none
 
 ### What was done
 
-- **Documentation audit** across CLAUDE, ROLE_CONTEXT_POLICY, ADRs, domain model, diagrams, agent contracts, READMEs, and CI config.
-- **Package rename alignment** � updated docs to `com.netcompany.vat.domain`.
-- **Jurisdiction diagram** � updated DK filing deadlines and refreshed the diagram content.
-- **ADRs** � corrected ADR-002 (dependencies/row-level security notes) and added Alternatives Considered to ADR-004.
-- **README cleanup** � fixed Phase 1 flow example and updated status table timestamp.
-- **Agent contracts** � added completion banners and handoff protocol alignment.
-- **Audit report** � created `docs/audit/audit-report-2026-02-25.md`.
+- **`VatReturn` domain record extended** — added `assembledAt`, `submittedAt`, `acceptedAt`, `skatReference` nullable fields. Added 11-param `VatReturn.of()` overload; kept 7-param overload for backward compatibility.
+- **`VatReturnRepository`** — added `updateStatusAndReference(UUID, VatReturnStatus, Instant, String)` to interface and `JooqVatReturnRepository`.
+- **`VatReturnMapper`** — updated `fromRecord()` to populate four new timestamp/reference columns from DB.
+- **`JooqVatReturnRepository.save()`** — now sets `assembled_at` in DB and returns domain object with `assembledAt` populated.
+- **`skat-client` module** — fully implemented: `SkatClient`, `ViesClient`, `PeppolClient` interfaces; `SkatClientStub`, `ViesClientStub`, `PeppolClientStub`; `SkatClientProperties`, `ViesClientProperties`, `SkatClientConfiguration`; `SkatSubmissionRequest`, `ViesValidationRequest` DTOs; `SkatMapper`; `SkatUnavailableException`, `ViesUnavailableException`; `application-skat.yml`.
+- **API wiring** — `ApiApplication` scans `com.netcompany.vat.skatclient`; `application.yml` includes `skat` profile; `VatReturnController.submitReturn()` calls real `SkatClient`; `GlobalExceptionHandler` handles 503 for `SkatUnavailableException`.
+- **Tests updated** — `VatReturnControllerTest` adds `SkatClient` mock and REJECTED/UNAVAILABLE test cases; `VatFilingFlowIT` now verifies ACCEPTED status and `skatReference` after submit.
+- **New unit tests** — `SkatClientStubTest`, `ViesClientStubTest`, `SkatMapperTest` (no Docker required).
+- **132 tests total** — 105 passing, 27 skipped (Docker-gated IT tests).
 
 ### What the next agent needs to know
 
-1. `docs/agent-sessions/session-log.md` still contains historical entries outside the standard format below the append anchor.
-2. Some documents may still contain legacy mojibake characters; a future encoding cleanup pass is recommended.
+1. **`VatReturn` constructor** now requires 14 arguments — 4 nullable timestamp/reference fields appended. All direct `new VatReturn(...)` calls must be updated.
+2. **Stub response mode** — `SKAT_STUB_RESPONSE=ACCEPTED|REJECTED|UNAVAILABLE` env var controls stub behaviour.
+3. **Phase 2 upgrade** — replace `SkatClientStub` with `SkatClientImpl` in `SkatClientConfiguration`; add SKAT API key to k8s secrets template.
+4. **PEPPOL is Phase 2** — `PeppolClientStub` throws `UnsupportedOperationException`; do not implement until Phase 2.
+5. **Known gaps** — G2 (rubrik goods/services split), G3 (counterparty country routing), G5 (transaction direction) remain unresolved from the BA analysis.
 
 ### Recommended next agent
-**Integration Agent** � implement SKAT client wiring and replace the submit stub.
+**Testing Agent** — comprehensive test suite including filing scenarios, error paths, and SKAT rejection handling against the stub.
 
 ---
 

@@ -2,6 +2,7 @@ package com.netcompany.vat.api.handler;
 
 import com.netcompany.vat.api.exception.EntityNotFoundException;
 import com.netcompany.vat.api.exception.InvalidPeriodStateException;
+import com.netcompany.vat.skatclient.SkatUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -40,6 +41,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleConflict(InvalidPeriodStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "CONFLICT", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SkatUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleSkatUnavailable(SkatUnavailableException ex) {
+        log.warn("SKAT unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "SKAT_UNAVAILABLE", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

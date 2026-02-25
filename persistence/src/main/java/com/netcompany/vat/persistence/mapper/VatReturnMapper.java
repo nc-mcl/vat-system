@@ -9,6 +9,8 @@ import com.netcompany.vat.domain.VatReturn;
 import com.netcompany.vat.domain.VatReturnStatus;
 import org.jooq.Record;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -33,6 +35,10 @@ public final class VatReturnMapper {
      * <p>Uses {@link VatReturn#of} so that {@code netVat}, {@code resultType},
      * and {@code claimAmount} are recomputed from their stored source values
      * rather than read blindly from DB columns.
+     *
+     * <p>Lifecycle timestamps ({@code assembled_at}, {@code submitted_at},
+     * {@code accepted_at}) and {@code skat_reference} are read directly and
+     * populated in the returned record.
      */
     public static VatReturn fromRecord(Record r, ObjectMapper objectMapper) {
         MonetaryAmount outputVat = MonetaryAmount.ofOere(r.get("output_vat", Long.class));
@@ -41,6 +47,11 @@ public final class VatReturnMapper {
         Object rawJson = r.get("jurisdiction_fields");
         Map<String, Object> fields = parseJurisdictionFields(rawJson, objectMapper);
 
+        Instant assembledAt = toInstant(r.get("assembled_at", OffsetDateTime.class));
+        Instant submittedAt = toInstant(r.get("submitted_at", OffsetDateTime.class));
+        Instant acceptedAt  = toInstant(r.get("accepted_at", OffsetDateTime.class));
+        String skatReference = r.get("skat_reference", String.class);
+
         return VatReturn.of(
                 r.get("id", UUID.class),
                 JurisdictionCode.fromString(r.get("jurisdiction_code", String.class)),
@@ -48,8 +59,16 @@ public final class VatReturnMapper {
                 outputVat,
                 inputVat,
                 VatReturnStatus.valueOf(r.get("status", String.class)),
-                fields
+                fields,
+                assembledAt,
+                submittedAt,
+                acceptedAt,
+                skatReference
         );
+    }
+
+    private static Instant toInstant(OffsetDateTime odt) {
+        return odt != null ? odt.toInstant() : null;
     }
 
     private static Map<String, Object> parseJurisdictionFields(Object raw, ObjectMapper mapper) {

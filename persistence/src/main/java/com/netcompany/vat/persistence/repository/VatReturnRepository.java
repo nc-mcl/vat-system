@@ -30,4 +30,13 @@ public interface VatReturnRepository {
      * The {@code AuditLogger} must be called before invoking this method.
      */
     VatReturn updateStatus(UUID id, VatReturnStatus status, Instant timestamp);
+
+    /**
+     * Transitions the return to a new status, records the event timestamp, and stores
+     * the authority reference (e.g. SKAT reference on acceptance).
+     * The {@code AuditLogger} must be called before invoking this method.
+     *
+     * @param skatReference authority-assigned reference number; may be {@code null} for REJECTED
+     */
+    VatReturn updateStatusAndReference(UUID id, VatReturnStatus status, Instant timestamp, String skatReference);
 }

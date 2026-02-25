@@ -12,7 +12,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = {
         "com.netcompany.vat.api",
-        "com.netcompany.vat.persistence"
+        "com.netcompany.vat.persistence",
+        "com.netcompany.vat.skatclient"
 })
 public class ApiApplication {
 

@@ -1,0 +1,10 @@
+skat:
+  base-url: ${SKAT_BASE_URL:https://api-sandbox.skat.dk}
+  api-key: ${SKAT_API_KEY:}
+  timeout-seconds: ${SKAT_TIMEOUT_SECONDS:30}
+  stub:
+    response: ${SKAT_STUB_RESPONSE:ACCEPTED}
+
+vies:
+  base-url: ${VIES_BASE_URL:https://ec.europa.eu/taxation_customs/vies/rest-api}
+  timeout-seconds: ${VIES_TIMEOUT_SECONDS:10}
