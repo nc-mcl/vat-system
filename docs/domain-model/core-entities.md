@@ -6,7 +6,7 @@ The domain model is **jurisdiction-agnostic at its core**. All entities are Java
 interfaces with no framework dependencies. Danish VAT is the first jurisdiction plugin; additional
 countries extend the same interfaces without touching core logic.
 
-Base package: `com.netcompany.vat.coredomain`
+Base package: `com.netcompany.vat.domain`
 
 ---
 
@@ -214,7 +214,7 @@ public sealed interface Result<T> permits Result.Ok, Result.Err {
 
 ### `JurisdictionPlugin` (interface)
 
-Defined in `com.netcompany.vat.coredomain.jurisdiction`. Every country implements this interface.
+Defined in `com.netcompany.vat.domain.jurisdiction`. Every country implements this interface.
 
 ```java
 public interface JurisdictionPlugin {

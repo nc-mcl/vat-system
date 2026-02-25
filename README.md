@@ -37,7 +37,7 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | SKAT Integration | ⏳ Pending | SKAT API client, PEPPOL e-invoicing, VIES VAT validation |
 | End-to-End Tests | ⏳ Pending | Full filing scenarios against SKAT sandbox |
 
-<!-- Last updated by: API Agent — 2026-02-25 (Persistence ✅ Done; REST API ✅ Done) -->
+<!-- Last updated by: Audit Agent � 2026-02-25 (no status changes) -->
 
 ### Phase 1 Roadmap
 
@@ -79,9 +79,9 @@ What exists now (tax engine + DevOps scaffolding)
 Phase 1 is complete when this full flow works via the REST API:
 
 ```bash
-# Step 1 — Register a business
-POST /api/v1/businesses
-{ "cvrNumber": "12345678", "name": "Acme ApS" }
+# Step 1 — Open a VAT filing period
+POST /api/v1/periods
+{ "jurisdictionCode": "DK", "periodStart": "2026-01-01", "periodEnd": "2026-03-31", "filingCadence": "QUARTERLY" }
 
 # Step 2 — Submit transactions
 POST /api/v1/transactions

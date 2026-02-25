@@ -74,12 +74,8 @@ Test results: `tax-engine/build/reports/tests/test/index.html`
   `EXEMPT/OUT_OF_SCOPE` → Rubrik C. Full goods/services/EU split requires a `transactionType` field on `Transaction`
 
 ## Known gaps (for next agent)
-1. `Transaction.vatAmount()` returns a small negative value for EXEMPT/OUT_OF_SCOPE (rate = −1).
-   The `VatReturnAssembler` guards against this via a switch, but the root cause should be fixed
-   in `Transaction` (Architecture Agent).
-2. Rubrik A/B goods vs services split requires a `transactionType` (GOODS/SERVICES) field on `Transaction`.
-3. Package naming: actual package is `com.netcompany.vat.coredomain`; CLAUDE.md refers to `com.netcompany.vat.domain`.
-   A cleanup pass is needed.
+1. Rubrik A/B goods vs services split requires a `transactionType` (GOODS/SERVICES) field on `Transaction`,
+   plus counterparty country for full EU routing.
 
 ## Docker
 Not applicable (library module).

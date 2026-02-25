@@ -1,6 +1,6 @@
 # Entity Relationship Diagram — Core Domain
 
-**What this shows:** All core domain entities and their relationships, derived directly from the Java 21 records in `core-domain/src/main/java/com/netcompany/vat/coredomain/`. Field types reflect the Java record definitions.
+**What this shows:** All core domain entities and their relationships, derived directly from the Java 21 records in `core-domain/src/main/java/com/netcompany/vat/domain/`. Field types reflect the Java record definitions.
 
 **Last updated:** 2026-02-24
 **Produced by:** Design Agent

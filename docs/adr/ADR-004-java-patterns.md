@@ -158,6 +158,14 @@ the OIOUBL phase-out.
 
 ---
 
+## Alternatives Considered
+
+- **Use Lombok for domain objects** — rejected because Java records already provide the needed immutability and boilerplate reduction without annotation processing.
+- **Use `BigDecimal` for monetary storage** — rejected because integer oere arithmetic is exact and simpler for VAT calculations; `BigDecimal` adds rounding policy risk.
+- **Use WebFlux end-to-end** — rejected because Java 21 virtual threads provide similar concurrency without reactive complexity.
+
+---
+
 ## Summary
 
 | Pattern | Where Applied | Key Benefit |

@@ -1,5 +1,8 @@
 # Domain Rules Agent - Operating Contract
 
+> **Status: Complete** — This agent has run. See `docs/agent-sessions/session-log.md`
+> for the completed session details.
+
 ## Role
 You are the Domain Rules Agent for a multi-jurisdiction VAT system. Your responsibility is implementing `tax-engine` as pure business logic with zero infrastructure dependencies.
 
@@ -8,8 +11,8 @@ Every method must be deterministic and side-effect free.
 
 ## Before You Start
 1. Run `health_check` on tax-core-mcp.
-2. Read `/core-domain/src/main/java/com/netcompany/vat/coredomain/` and `/core-domain/src/main/java/com/netcompany/vat/coredomain/jurisdiction/`.
-3. Read DK plugin implementation at `/core-domain/src/main/java/com/netcompany/vat/coredomain/dk/DkJurisdictionPlugin.java`.
+2. Read `/core-domain/src/main/java/com/netcompany/vat/domain/` and `/core-domain/src/main/java/com/netcompany/vat/domain/jurisdiction/`.
+3. Read DK plugin implementation at `/core-domain/src/main/java/com/netcompany/vat/domain/dk/DkJurisdictionPlugin.java`.
 4. Load current analysis docs via `get_business_analyst_context_bundle`:
    - `docs/analysis/dk-vat-rules-validated.md`
    - `docs/analysis/implementation-risk-register.md`
@@ -19,16 +22,11 @@ Every method must be deterministic and side-effect free.
 ## Coding Rules
 - No framework dependencies in `tax-engine`.
 - Use `long` in smallest currency unit and basis points for rates.
-- Reuse `com.netcompany.vat.coredomain.Result` and `VatRuleError`; do not duplicate result types.
+- Reuse `com.netcompany.vat.domain.Result` and `VatRuleError`; do not duplicate result types.
 - Keep package as `com.netcompany.vat.taxengine`.
 
 ## Current Module Reality
-Existing classes in `tax-engine` are:
-- `RateResolver.java`
-- `VatResult.java`
-- `ReverseChargeResult.java`
-
-No `TaxEngine`, `VatCalculator`, `ReverseChargeEngine`, `ExemptionClassifier`, or `FilingPeriodCalculator` classes exist yet.
+All core `tax-engine` classes are implemented and tested (see `tax-engine/README.md` and the session log).
 
 ## Tasks
 ### Task 1 - Complete rate resolution and tests
@@ -47,7 +45,7 @@ Create `ReverseChargeEngine.java` that:
 - returns `Result<ReverseChargeResult>` for expected rule failures
 
 ### Task 4 - Add VAT return assembler
-Create `VatReturnAssembler.java` that assembles a `com.netcompany.vat.coredomain.VatReturn` from period transactions.
+Create `VatReturnAssembler.java` that assembles a `com.netcompany.vat.domain.VatReturn` from period transactions.
 
 ### Task 5 - Add test coverage
 Add JUnit 5 tests for all new and existing `tax-engine` classes.
@@ -68,6 +66,8 @@ Add JUnit 5 tests for all new and existing `tax-engine` classes.
 Before finishing:
 - Update `CLAUDE.md` Last Agent Session.
 - Update `tax-engine/README.md`.
+- Update the root `README.md` status table (Tax Engine row).
+- Append to `docs/agent-sessions/session-log.md`.
 - Print a structured handoff summary.
 
 ## Constraints

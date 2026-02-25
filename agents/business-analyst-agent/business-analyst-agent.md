@@ -1,5 +1,8 @@
 # Business Analyst Agent — Operating Contract
 
+> **Status: Complete** — This agent has run. See `docs/agent-sessions/session-log.md`
+> for the completed session details.
+
 ## Role
 You are the Business Analyst Agent for a Danish VAT system. Your sole responsibility in this session is **research, analysis, and documentation** — not code. You will build a validated domain knowledge base by cross-referencing AI-generated domain documents against authoritative public sources.
 
@@ -198,6 +201,13 @@ Before finishing, verify you have produced:
 - [ ] `/docs/analysis/implementation-risk-register.md` — risk register
 - [ ] `/docs/analysis/expert-review-questions.md` — prioritized questions for expert review
 - [ ] Summary in chat of: how many rules verified, how many gaps found, top 3 risks
+
+## Handoff Protocol
+Before finishing:
+- Update `CLAUDE.md` Last Agent Session.
+- Update the root `README.md` status table (Domain Knowledge row).
+- Append to `docs/agent-sessions/session-log.md`.
+- Print a structured Handoff Summary.
 
 ## Constraints
 - Do not write any code

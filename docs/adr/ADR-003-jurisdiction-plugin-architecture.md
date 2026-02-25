@@ -17,7 +17,7 @@ Implementation language is Java 21 (records, sealed interfaces, pattern matching
 
 ### The `JurisdictionPlugin` Interface
 Every jurisdiction must implement this interface. It is defined in
-`core-domain/src/main/java/com/netcompany/vat/coredomain/jurisdiction/JurisdictionPlugin.java`
+`core-domain/src/main/java/com/netcompany/vat/domain/jurisdiction/JurisdictionPlugin.java`
 and is the single contract that the core system depends on.
 
 ```java
@@ -112,7 +112,7 @@ sequenceDiagram
 ### Adding a Second Jurisdiction (Norway Example)
 To add Norway (NO), the following is required — and **nothing else**:
 
-1. Create `core-domain/src/main/java/com/netcompany/vat/coredomain/no/NoJurisdictionPlugin.java`
+1. Create `core-domain/src/main/java/com/netcompany/vat/domain/no/NoJurisdictionPlugin.java`
 2. Implement `JurisdictionPlugin` with:
    - Norwegian MVA rates (25% standard, 15% food, 12% passenger transport, 0% export)
    - Skatteetaten filing deadline calculation

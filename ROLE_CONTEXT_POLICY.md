@@ -1,4 +1,4 @@
-\# Role Context Policy — VAT System
+# Role Context Policy — VAT System
 
 
 
@@ -10,7 +10,7 @@ This document defines mandatory constraints that ALL agents must follow without 
 
 
 
-\## 1. Open Source Only — No Licensed Dependencies
+## 1. Open Source Only — No Licensed Dependencies
 
 
 
@@ -57,6 +57,7 @@ Approved core dependencies (pre-verified):
 |---|---|---|
 
 | Spring Boot 3.3 | Apache 2.0 | Application framework |
+| Spring WebFlux (WebClient) | Apache 2.0 | HTTP client for SKAT/VIES |
 
 | JOOQ (open source edition) | Apache 2.0 | Type-safe SQL |
 
@@ -71,12 +72,16 @@ Approved core dependencies (pre-verified):
 | Testcontainers | MIT | Integration testing |
 
 | Jackson | Apache 2.0 | JSON |
+| Jackson Module Parameter Names | Apache 2.0 | Constructor parameter name binding |
 
 | Micrometer | Apache 2.0 | Metrics |
 
 | OpenTelemetry | Apache 2.0 | Tracing |
 
 | Node.js MCP SDK | MIT | MCP server |
+| Logstash Logback Encoder | Apache 2.0 | Structured JSON logging |
+| Springdoc OpenAPI | Apache 2.0 | Swagger UI / OpenAPI |
+| WireMock Standalone | Apache 2.0 | SKAT/VIES API stubs in tests |
 
 
 
@@ -88,7 +93,7 @@ Approved core dependencies (pre-verified):
 
 
 
-\## 2. Containers and Kubernetes — Mandatory
+## 2. Containers and Kubernetes — Mandatory
 
 
 
@@ -96,7 +101,7 @@ Approved core dependencies (pre-verified):
 
 
 
-\### Docker Requirements
+### Docker Requirements
 
 \- Every service must have a `Dockerfile` using a minimal base image
 
@@ -112,7 +117,7 @@ Approved core dependencies (pre-verified):
 
 
 
-\### Kubernetes Requirements
+### Kubernetes Requirements
 
 Every service must have Kubernetes manifests in `/infrastructure/k8s/<service-name>/`:
 
@@ -136,7 +141,7 @@ Cluster-level resources in `/infrastructure/k8s/cluster/`:
 
 
 
-\### Resource Limits (mandatory on all pods)
+### Resource Limits (mandatory on all pods)
 
 ```yaml
 
@@ -160,7 +165,7 @@ Adjust per service but always set explicit limits — never leave them unbounded
 
 
 
-\### Health Checks (mandatory on all services)
+### Health Checks (mandatory on all services)
 
 Every Spring Boot service must expose:
 
@@ -172,7 +177,7 @@ Every Spring Boot service must expose:
 
 
 
-\### Local Development
+### Local Development
 
 Provide a `docker-compose.yml` in the project root for local development:
 
@@ -190,7 +195,7 @@ Provide a `docker-compose.yml` in the project root for local development:
 
 
 
-\## 3. Agent Handoff Protocol
+## 3. Agent Handoff Protocol
 
 
 
@@ -202,13 +207,13 @@ Before finishing, every agent must:
 
 
 
-\### 3.1 Update CLAUDE.md
+### 3.1 Update CLAUDE.md
 
 Add a section at the bottom:
 
 ```markdown
 
-\## Last Agent Session
+## Last Agent Session
 
 \- Agent: \[agent name]
 
@@ -224,7 +229,7 @@ Add a section at the bottom:
 
 
 
-\### 3.2 Update the Relevant README
+### 3.2 Update the Relevant README
 
 Every package or infrastructure component touched must have an up-to-date README.md covering:
 
@@ -242,7 +247,7 @@ Every package or infrastructure component touched must have an up-to-date README
 
 
 
-\### 3.3 Verify Successor Readiness
+### 3.3 Verify Successor Readiness
 
 Before finishing, explicitly check:
 
@@ -258,39 +263,39 @@ Before finishing, explicitly check:
 
 
 
-\### 3.4 Produce a Handoff Summary
+### 3.4 Produce a Handoff Summary
 
 At the end of every session, print a handoff summary in this format:
 
 ```
 
-\## Handoff Summary
+## Handoff Summary
 
-\### What I completed
-
-\- \[list]
-
-
-
-\### What the next agent needs to know
+### What I completed
 
 \- \[list]
 
 
 
-\### Files created or modified
+### What the next agent needs to know
+
+\- \[list]
+
+
+
+### Files created or modified
 
 \- \[list with brief description of each]
 
 
 
-\### Blockers or open questions
+### Blockers or open questions
 
 \- \[list or "none"]
 
 
 
-\### Recommended next agent
+### Recommended next agent
 
 \- \[agent name and why]
 
@@ -302,7 +307,7 @@ At the end of every session, print a handoff summary in this format:
 
 
 
-\## 4. README Standards
+## 4. README Standards
 
 
 
@@ -312,41 +317,41 @@ Every directory that contains runnable or deployable code must have a README.md.
 
 ```markdown
 
-\# \[Component Name]
+# \[Component Name]
 
 
 
-\## What this is
+## What this is
 
 \[One paragraph description]
 
 
 
-\## Prerequisites
+## Prerequisites
 
 \[List of what must be installed/running]
 
 
 
-\## How to build
+## How to build
 
 \[Commands]
 
 
 
-\## How to run locally
+## How to run locally
 
 \[Commands including required environment variables]
 
 
 
-\## How to run tests
+## How to run tests
 
 \[Commands]
 
 
 
-\## Environment variables
+## Environment variables
 
 | Variable | Required | Default | Description |
 
@@ -354,13 +359,13 @@ Every directory that contains runnable or deployable code must have a README.md.
 
 
 
-\## Docker
+## Docker
 
 \[How to build and run the Docker image]
 
 
 
-\## Kubernetes
+## Kubernetes
 
 \[How to deploy to Kubernetes]
 
@@ -372,7 +377,7 @@ Every directory that contains runnable or deployable code must have a README.md.
 
 
 
-\## 5. General Constraints (All Agents)
+## 5. General Constraints (All Agents)
 
 
 

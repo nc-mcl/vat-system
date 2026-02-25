@@ -9,13 +9,13 @@ Reporting transforms existing persisted/domain data into authority-facing payloa
 ## Before You Start
 1. Run `health_check` on tax-core-mcp.
 2. Read current `core-domain` records (`VatReturn`, `Transaction`, `TaxPeriod`, `JurisdictionCode`).
-3. Read current `api` module state (currently placeholder package).
+3. Read current `api` module state (controllers exist; reporting endpoints do not).
 4. Load analysis docs via `get_business_analyst_context_bundle`:
    - `docs/analysis/dk-vat-rules-validated.md`
    - `docs/analysis/implementation-risk-register.md`
 
 ## Current Module Reality
-- `api` has no reporting services/controllers yet.
+- `api` has controllers for periods/transactions/returns, but no reporting-specific services or endpoints yet.
 - `core-domain` contains `VatReturn` (not `TaxReturn`) and no `ReportFormatter` interface.
 
 ## Coding Rules
@@ -58,6 +58,8 @@ Add unit and slice tests for formatter/services/controllers.
 Before finishing:
 - Update `CLAUDE.md` Last Agent Session.
 - Update `api/README.md`.
+- Update the root `README.md` status table if you completed a tracked layer.
+- Append to `docs/agent-sessions/session-log.md`.
 - Print a structured handoff summary.
 
 ## Constraints

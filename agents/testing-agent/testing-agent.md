@@ -17,7 +17,7 @@ Each test must validate a concrete rule or behavior with explicit assertions.
 
 ## Current Module Reality
 - No `analysis/08-scenario-universe-coverage-matrix-dk.md` file exists.
-- `persistence` and `api` are mostly placeholders, so test scope must follow implemented code.
+- `persistence` and `api` are implemented with repositories and REST endpoints; tests should extend existing coverage.
 
 ## Test Strategy
 - Unit tests first for `core-domain` and `tax-engine` behavior.
@@ -55,6 +55,8 @@ Add controller/adapter tests as modules gain concrete classes.
 Before finishing:
 - Update `CLAUDE.md` Last Agent Session.
 - Update touched module READMEs.
+- Update the root `README.md` status table (End-to-End Tests row).
+- Append to `docs/agent-sessions/session-log.md`.
 - Print a structured handoff summary.
 
 ## Constraints

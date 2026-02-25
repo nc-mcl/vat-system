@@ -34,7 +34,6 @@ The multi-jurisdiction requirement is the dominant architectural driver. Every t
 - **Superior to Maven for multi-module projects**: Gradle's incremental build and task-level caching avoid rebuilding unchanged modules. In a six-module project running concurrently across agents, this reduces CI times significantly.
 - **Kotlin DSL** (`build.gradle.kts`) provides type-safe autocomplete in IDEs — critical when multiple agents configure build files without running a full compile cycle.
 - **Parallel execution** (`--parallel`) allows `core-domain` and `tax-engine` builds to run concurrently, independent of each other.
-- **Version catalogs** (`libs.versions.toml`) centralise Spring Boot BOM and JOOQ version pins across all modules, eliminating version skew.
 - **Gradle's `apply false` pattern** lets the root build declare plugin versions centrally without applying Spring Boot to library-only modules (`core-domain`, `tax-engine`).
 - Alternative considered: Maven — verbose XML, no incremental task graph, and weaker multi-module build caching. Acceptable for single-module projects; becomes a maintenance burden at six modules.
 
@@ -43,7 +42,7 @@ The multi-jurisdiction requirement is the dominant architectural driver. Every t
 - **Immutable event ledger alignment**: The append-only ledger (ADR-001) maps naturally to JOOQ `insertInto(...).values(...)` calls. There are no JOOQ `update()` or `delete()` calls in the ledger path — the absence is structurally enforced by code review, not by framework magic.
 - **JSONB for jurisdiction fields**: JOOQ's `JSONB` binding allows storing jurisdiction-specific rubrik fields in a typed PostgreSQL JSONB column. Adding Norway or Germany requires zero schema migrations to core tables — only a new JOOQ binding for the jurisdiction's field shape.
 - **Flyway** provides versioned, repeatable migrations with full PostgreSQL DDL support (partial indexes, row-level security, `pg_audit` triggers). PostgreSQL-specific DDL is not abstracted — the schema is written directly for the target database.
-- **Row-level security** on the `audit_events` table is set up via Flyway migration: `REVOKE UPDATE, DELETE ON audit_events FROM vat_app_role` enforces Bogføringsloven immutability at the database layer.
+- **Row-level security** should be enforced in production (via RLS or a write-only role) to reinforce Bogføringsloven immutability at the database layer. Migrations document the requirement but do not configure RLS by default.
 - Alternative considered: Spring Data JPA (Hibernate) — convenient for CRUD entities but actively harmful for an event-sourced, append-only ledger. JPA's session cache and dirty-checking semantics conflict with the immutability requirement. JOOQ's explicit SQL model is the right abstraction for financial systems.
 
 ### Validation: Jakarta Bean Validation 3.0
@@ -64,7 +63,7 @@ The multi-jurisdiction requirement is the dominant architectural driver. Every t
 - Eliminates IEEE 754 floating-point errors — a compliance requirement for tax systems.
 - `long` arithmetic is exact for the operations used in VAT: addition, subtraction, and percentage calculation via basis points (`vatAmount = taxableAmount * basisPoints / 10_000`).
 - VAT rates expressed as basis points: `2500` = 25.00%. The `/ 10_000` division is integer division with no floating-point rounding.
-- Enforced by a value object: `record Money(long amount, String currencyCode)`. No raw `long` passes across module boundaries without a `Money` wrapper.
+- Enforced by a value object: `record MonetaryAmount(long oere)`. No raw `long` passes across module boundaries without a `MonetaryAmount` wrapper.
 
 ### Module Structure
 ```

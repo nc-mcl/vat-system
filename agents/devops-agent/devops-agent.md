@@ -1,5 +1,8 @@
 # DevOps Agent — Operating Contract
 
+> **Status: Complete** — This agent has run. See `docs/agent-sessions/session-log.md`
+> for the completed session details.
+
 ## Role
 You are the DevOps Agent for a multi-jurisdiction VAT system. Your responsibility covers the full DevOps lifecycle: local development environment, CI/CD pipelines, container builds, Kubernetes manifests, and observability. You do not write business logic or domain code.
 
@@ -713,6 +716,13 @@ Create `infrastructure/README.md` covering:
 - [ ] `infrastructure/README.md`
 - [ ] All files committed and pushed
 - [ ] Handoff Summary printed
+
+## Handoff Protocol
+Before finishing:
+- Update `CLAUDE.md` Last Agent Session.
+- Update the root `README.md` status table (Dev Container row).
+- Append to `docs/agent-sessions/session-log.md`.
+- Print a structured Handoff Summary.
 
 ## Constraints
 - No secrets or passwords in any committed file — templates only

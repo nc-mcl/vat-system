@@ -1,9 +1,9 @@
 # Jurisdiction Plugin Architecture Diagram
 
-**What this shows:** How the plugin system works — the `JurisdictionPlugin` interface, its current implementation (`DkJurisdictionPlugin`), the `JurisdictionRegistry`, and how the `TaxEngine` resolves plugins at runtime. Future jurisdiction placeholders show that adding a new country requires a new box only — zero changes to existing code.
+**What this shows:** How the plugin system works - the `JurisdictionPlugin` interface, its current implementation (`DkJurisdictionPlugin`), the `JurisdictionRegistry`, and how the `TaxEngine` resolves plugins at runtime. Future jurisdiction placeholders show that adding a new country requires a new box only - zero changes to existing code.
 
-**Last updated:** 2026-02-24
-**Produced by:** Design Agent
+**Last updated:** 2026-02-25
+**Produced by:** Design Agent (updated by Audit Agent)
 
 > **Key invariant (ADR-003):** Adding a new country = new plugin class only. Zero changes to `tax-engine`, `persistence`, API routing, audit trail, or any other jurisdiction's code.
 
@@ -13,34 +13,34 @@
 
 ```mermaid
 graph TD
-    subgraph CORE_DOMAIN ["core-domain module\n(com.netcompany.vat.coredomain)"]
+    subgraph CORE_DOMAIN ["core-domain module\n(com.netcompany.vat.domain)"]
         direction TB
 
-        INTERFACE["«interface»\nJurisdictionPlugin\n─────────────────────\n+getCode(): JurisdictionCode\n+getVatRateInBasisPoints(TaxCode, LocalDate): long\n+determineFilingCadence(MonetaryAmount): FilingCadence\n+calculateFilingDeadline(TaxPeriod): LocalDate\n+isReverseChargeApplicable(Transaction): boolean\n+isVidaEnabled(): boolean\n+getAuthorityName(): String"]
+        INTERFACE["<<interface>>\nJurisdictionPlugin\n---------------------\n+getCode(): JurisdictionCode\n+getVatRateInBasisPoints(TaxCode, LocalDate): long\n+determineFilingCadence(MonetaryAmount): FilingCadence\n+calculateFilingDeadline(TaxPeriod): LocalDate\n+isReverseChargeApplicable(Transaction): boolean\n+isVidaEnabled(): boolean\n+getAuthorityName(): String"]
 
-        DK["«record / final class»\nDkJurisdictionPlugin\n─────────────────────\ncode: DK\nstandardRate: 2500 bp = 25%\nMonthly threshold: >50M DKK\nQuarterly: 5M–50M DKK\nSemi-annual: <5M DKK\nDeadline: 10th of following month\nViDA: false (until 2028)\nAuthority: SKAT"]
+        DK["<<record / final class>>\nDkJurisdictionPlugin\n---------------------\ncode: DK\nstandardRate: 2500 bp = 25%\nMonthly threshold: >50M DKK\nQuarterly: 5M-50M DKK\nSemi-annual: <5M DKK\nMonthly deadline: 25th of next month\nQuarterly/Semi-annual/Annual: 1st of 3rd month after end\nViDA: false (until 2028)\nAuthority: SKAT"]
 
-        NO_FUTURE["«future — Phase 3»\nNoJurisdictionPlugin\n─────────────────────\ncode: NO\nstandardRate: 2500 bp = 25%\nreducedRate: 1500 bp = 15% (food)\nAuthority: Skatteetaten\nViDA: false"]
+        NO_FUTURE["<<future - Phase 3>>\nNoJurisdictionPlugin\n---------------------\ncode: NO\nstandardRate: 2500 bp = 25%\nreducedRate: 1500 bp = 15% (food)\nAuthority: Skatteetaten\nViDA: false"]
 
-        DE_FUTURE["«future — Phase 3»\nDeJurisdictionPlugin\n─────────────────────\ncode: DE\nstandardRate: 1900 bp = 19%\nreducedRate: 700 bp = 7%\nAuthority: Finanzamt / BZSt\nViDA: false"]
+        DE_FUTURE["<<future - Phase 3>>\nDeJurisdictionPlugin\n---------------------\ncode: DE\nstandardRate: 1900 bp = 19%\nreducedRate: 700 bp = 7%\nAuthority: Finanzamt / BZSt\nViDA: false"]
 
         DK -->|implements| INTERFACE
         NO_FUTURE -->|implements| INTERFACE
         DE_FUTURE -->|implements| INTERFACE
 
-        REGISTRY["JurisdictionRegistry\n─────────────────────\n+register(plugin: JurisdictionPlugin)\n+resolve(code: JurisdictionCode): JurisdictionPlugin\n─────────────────────\nHolds: Map<JurisdictionCode, JurisdictionPlugin>"]
+        REGISTRY["JurisdictionRegistry\n---------------------\n+register(plugin: JurisdictionPlugin)\n+resolve(code: JurisdictionCode): JurisdictionPlugin\n---------------------\nHolds: Map<JurisdictionCode, JurisdictionPlugin>"]
 
         REGISTRY -->|contains| DK
-        REGISTRY -.->|will contain — Phase 3| NO_FUTURE
-        REGISTRY -.->|will contain — Phase 3| DE_FUTURE
+        REGISTRY -.->|will contain - Phase 3| NO_FUTURE
+        REGISTRY -.->|will contain - Phase 3| DE_FUTURE
     end
 
     subgraph TAX_ENGINE ["tax-engine module\n(com.netcompany.vat.taxengine)"]
-        ENGINE["TaxEngine\n─────────────────────\n+classify(transaction, plugin): Result<TaxClassification>\n+calculateVat(transaction, classification): Result<MonetaryAmount>\n+assembleVatReturn(transactions, plugin): Result<VatReturn>\n─────────────────────\nDepends only on JurisdictionPlugin interface\nNever imports DkJurisdictionPlugin directly"]
+        ENGINE["TaxEngine\n---------------------\n+classify(transaction, plugin): Result<TaxClassification>\n+calculateVat(transaction, classification): Result<MonetaryAmount>\n+assembleVatReturn(transactions, plugin): Result<VatReturn>\n---------------------\nDepends only on JurisdictionPlugin interface\nNever imports DkJurisdictionPlugin directly"]
     end
 
-    subgraph API_MODULE ["api module — Spring @Configuration"]
-        CONFIG["JurisdictionRegistryConfig\n─────────────────────\n@Bean JurisdictionRegistry\n  registry.register(new DkJurisdictionPlugin())\n  // Phase 3: registry.register(new NoJurisdictionPlugin())\n  // Phase 3: registry.register(new DeJurisdictionPlugin())"]
+    subgraph API_MODULE ["api module - Spring @Configuration"]
+        CONFIG["JurisdictionRegistryConfig\n---------------------\n@Bean JurisdictionRegistry\n  registry.register(new DkJurisdictionPlugin())\n  // Phase 3: registry.register(new NoJurisdictionPlugin())\n  // Phase 3: registry.register(new DeJurisdictionPlugin())"]
     end
 
     ENGINE -->|resolves plugin via| REGISTRY
@@ -61,17 +61,17 @@ graph TD
 
 ---
 
-## Adding a New Jurisdiction — What Changes
+## Adding a New Jurisdiction - What Changes
 
 ```mermaid
 flowchart LR
-    subgraph TODAY ["Phase 1 — Today"]
-        DK1["DkJurisdictionPlugin\n✅ Implemented"]
+    subgraph TODAY ["Phase 1 - Today"]
+        DK1["DkJurisdictionPlugin\nDone"]
     end
 
-    subgraph PHASE3 ["Phase 3 — Adding Norway"]
-        NO1["NoJurisdictionPlugin\n🆕 New class only"]
-        NOTE1["1. Create NoJurisdictionPlugin\n   in core-domain/no/\n2. Add NO to JurisdictionCode enum\n3. Register in API @Configuration\n\nZERO changes to:\n• tax-engine logic\n• persistence schema\n• API routing\n• audit trail\n• DkJurisdictionPlugin\n• any other code"]
+    subgraph PHASE3 ["Phase 3 - Adding Norway"]
+        NO1["NoJurisdictionPlugin\nNew class only"]
+        NOTE1["1. Create NoJurisdictionPlugin\n   in core-domain/no/\n2. Add NO to JurisdictionCode enum\n3. Register in API @Configuration\n\nZERO changes to:\n- tax-engine logic\n- persistence schema\n- API routing\n- audit trail\n- DkJurisdictionPlugin\n- any other code"]
     end
 
     DK1 -->|unchanged| PHASE3
@@ -90,7 +90,7 @@ flowchart LR
 flowchart TD
     TX["Transaction received"] --> RESOLVE["Resolve plugin\nregistry.resolve(jurisdictionCode)"]
     RESOLVE --> CLASSIFY["classify + calculateVat\nvia TaxEngine"]
-    CLASSIFY --> VIDA_CHECK{plugin.isVidaEnabled()?}
+    CLASSIFY --> VIDA_CHECK{"plugin.isVidaEnabled()?"}
 
     VIDA_CHECK -- false\nDK until 2028 --> PERSIST["Persist transaction\n+ audit log"]
     VIDA_CHECK -- true\nPhase 2 future --> DRR["Route to DRR Reporter\nReal-time reporting\nto tax authority API"]
@@ -112,9 +112,9 @@ flowchart TD
 | `getVatRateInBasisPoints(STANDARD, date)` | `2500` | 25.00% MOMS |
 | `getVatRateInBasisPoints(EXEMPT, date)` | `-1` | Not applicable |
 | `determineFilingCadence(>50M DKK)` | `MONTHLY` | High-turnover filers |
-| `determineFilingCadence(5M–50M DKK)` | `QUARTERLY` | Mid-range filers |
+| `determineFilingCadence(5M-50M DKK)` | `QUARTERLY` | Mid-range filers |
 | `determineFilingCadence(<5M DKK)` | `SEMI_ANNUAL` | Small filers |
-| `calculateFilingDeadline(period)` | `period.endDate + 1 month, 10th` | 10th of following month |
+| `calculateFilingDeadline(period)` | Monthly: 25th of next month. Quarterly/Semi-annual/Annual: 1st of 3rd month after end | SKAT cadence-based deadlines |
 | `isReverseChargeApplicable(tx)` | `tx.classification.taxCode == REVERSE_CHARGE` | Delegate to classification |
 | `isVidaEnabled()` | `false` | Phase 2 gate |
 | `getAuthorityName()` | `"SKAT"` | Audit log header |

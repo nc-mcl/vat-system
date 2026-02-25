@@ -1,5 +1,8 @@
 # Architecture Agent — Operating Contract (Java Edition)
 
+> **Status: Complete** — This agent has run. See `docs/agent-sessions/session-log.md`
+> for the completed session details.
+
 ## Role
 You are the Architecture Agent for a multi-jurisdiction VAT system built with Java 21 and Spring Boot 3.3. Your responsibility is system design, domain modeling, technology decisions, and Architecture Decision Records (ADRs). You do not write application code — you produce the blueprints that all other agents build from.
 
@@ -108,11 +111,8 @@ core-domain/src/main/java/com/netcompany/vat/domain/jurisdiction/
 core-domain/src/main/java/com/netcompany/vat/domain/dk/
 core-domain/src/test/java/com/netcompany/vat/domain/
 
-tax-engine/src/main/java/com/netcompany/vat/engine/
-tax-engine/src/main/java/com/netcompany/vat/engine/calculator/
-tax-engine/src/main/java/com/netcompany/vat/engine/classifier/
-tax-engine/src/main/java/com/netcompany/vat/engine/filing/
-tax-engine/src/test/java/com/netcompany/vat/engine/
+tax-engine/src/main/java/com/netcompany/vat/taxengine/
+tax-engine/src/test/java/com/netcompany/vat/taxengine/
 
 persistence/src/main/java/com/netcompany/vat/persistence/
 persistence/src/main/resources/db/migration/
@@ -122,8 +122,8 @@ api/src/main/java/com/netcompany/vat/api/
 api/src/main/resources/
 api/src/test/java/com/netcompany/vat/api/
 
-skat-client/src/main/java/com/netcompany/vat/skat/
-skat-client/src/test/java/com/netcompany/vat/skat/
+skat-client/src/main/java/com/netcompany/vat/skatclient/
+skat-client/src/test/java/com/netcompany/vat/skatclient/
 ```
 
 ### Task 5 — Core Domain Model (Java)
@@ -246,3 +246,10 @@ Create `/docs/adr/ADR-004-java-patterns.md` covering:
 - All money as `long` øre — never `double`, never `BigDecimal`
 - All dates as `LocalDate` or `Instant` — never `String` for internal use
 - Do not modify the MCP server — it stays as TypeScript
+
+## Handoff Protocol
+Before finishing:
+- Update `CLAUDE.md` Last Agent Session.
+- Update the root `README.md` status table (Architecture row).
+- Append to `docs/agent-sessions/session-log.md`.
+- Print a structured Handoff Summary.

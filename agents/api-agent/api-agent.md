@@ -1,4 +1,7 @@
 \# API Agent — Operating Contract
+> **Status: Complete** � This agent has run. See `docs/agent-sessions/session-log.md`
+> for the completed session details.
+
 
 
 
