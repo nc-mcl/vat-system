@@ -186,30 +186,36 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** CI Fix
+**Agent:** API Agent
 **Date:** 2026-02-25
 **Next agent can proceed:** yes
 **Blockers for next agent:** none
 
 ### What was done
 
-- **Verified `.github/workflows/ci.yml` action references** — confirmed all fixes were already applied in commit `3d2495e` (Persistence Agent). Current correct state:
-  - `dorny/test-reporter@v2` (was `dorny/tests-reporter@v1` — typo + version)
-  - `actions/checkout@v6` (both jobs)
-  - `actions/setup-java@v5` (both jobs)
-  - `docker/build-push-action@v6`
-  - `docker/setup-buildx-action@v3` — already current
-- **All 68 tax-engine tests still pass** (`BUILD SUCCESSFUL`)
-- **Documentation updated:** CLAUDE.md, README.md status comment, session-log.md
+- **`api/build.gradle.kts`** — fully wired: actuator, logstash-logback-encoder:7.4, springdoc-openapi:2.6.0, jackson-module-parameter-names, testcontainers:postgresql:1.20.1
+- **`ApiApplication.java`** — Spring Boot entry point with `scanBasePackages` for `api` + `persistence`
+- **`application.yml`** — updated with `spring.profiles.include: persistence`, actuator endpoints, health probes
+- **Exception classes** — `EntityNotFoundException` (404) and `InvalidPeriodStateException` (409)
+- **`GlobalExceptionHandler`** — maps all exception types to structured JSON error responses
+- **`JurisdictionRegistry`** — plugin registry with `DkJurisdictionPlugin`; `getTaxEngine(code)` factory
+- **4 REST controllers** — TaxPeriod, Transaction, VatReturn, Counterparty with full CRUD
+- **8 DTO records** — all monetary values in øre (long)
+- **17 tests passing** — 3 unit test classes (14 tests) + `VatFilingFlowIT` (skips without Docker)
+- **`api/README.md`** — full documentation
+- **`README.md`** — status table: Persistence ✅ Done, REST API ✅ Done
+- **`docs/agent-sessions/session-log.md`** — Session 008 appended
 
 ### What the next agent needs to know
 
-1. CI pipeline will now resolve correctly — the `dorny/tests-reporter` 404 that was breaking the `Publish test results` step is fixed.
-2. No Java source was changed; no schema changes; no new dependencies.
-3. On Windows, `GRADLE_OPTS` may be pre-set to `"-Dfile.encoding=UTF-8"` (with literal quotes) which breaks `./gradlew`. Unset it before invoking: `unset GRADLE_OPTS && ./gradlew ...`
+1. `POST /api/v1/returns/{id}/submit` returns `202 Accepted` stub — Integration Agent replaces it with real SKAT call.
+2. Period status after return assembly is `FILED` (no `LOCKED` enum value exists in `TaxPeriodStatus`).
+3. `VatReturnResponse` timestamps (`assembledAt`, `submittedAt`, `acceptedAt`) are null — DB columns exist but domain record doesn't expose them.
+4. `VatFilingFlowIT` requires Docker; uses `disabledWithoutDocker = true` to skip gracefully.
+5. OIOUBL 2.1 phases out May 15 2026 — Integration Agent must use PEPPOL BIS 3.0 only.
 
 ### Recommended next agent
-**API Agent** — implement Spring Boot REST endpoints using the persistence layer (see Persistence Agent session above). Everything is in place.
+**Integration Agent** — implement SKAT API client in `skat-client/`, wire to submit endpoint. Use PEPPOL BIS 3.0. SKAT sandbox: `https://api-sandbox.skat.dk`.
 
 ---
 

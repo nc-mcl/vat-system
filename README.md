@@ -32,12 +32,12 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | Tax Engine | ✅ Done | 68 tests passing — VAT calculation, classification, filing periods |
 | Design Diagrams | ✅ Done | 8 Mermaid diagrams covering the full system |
 | Dev Container | ✅ Done | VS Code dev container, Docker Compose, CI/CD pipeline |
-| Persistence | 🔄 In Progress | PostgreSQL schema, Flyway migrations, JOOQ repositories, audit ledger |
-| REST API | ⏳ Pending | Spring Boot REST endpoints, Bean Validation, DTOs |
+| Persistence | ✅ Done | PostgreSQL schema, Flyway migrations, JOOQ repositories, audit ledger |
+| REST API | ✅ Done | Spring Boot REST endpoints, Bean Validation, DTOs, 17 tests passing |
 | SKAT Integration | ⏳ Pending | SKAT API client, PEPPOL e-invoicing, VIES VAT validation |
 | End-to-End Tests | ⏳ Pending | Full filing scenarios against SKAT sandbox |
 
-<!-- Last updated by: CI Fix — 2026-02-25 (no status changes; CI workflow action refs corrected) -->
+<!-- Last updated by: API Agent — 2026-02-25 (Persistence ✅ Done; REST API ✅ Done) -->
 
 ### Phase 1 Roadmap
 

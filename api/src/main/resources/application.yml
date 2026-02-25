@@ -1,24 +1,27 @@
 spring:
+  profiles:
+    include: persistence
   application:
-    name: vat-system
+    name: vat-api
   threads:
     virtual:
       enabled: true          # Java 21 virtual threads for SKAT API I/O
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/vatdb}
-    username: ${DB_USER:vat_app}
-    password: ${DB_PASSWORD:changeme}
-    driver-class-name: org.postgresql.Driver
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-  jooq:
-    sql-dialect: POSTGRES
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
 
 logging:
   level:
     com.netcompany.vat: INFO
-    org.jooq.tools.LoggerListener: DEBUG  # log SQL in dev; set to WARN in production
+    org.jooq.tools.LoggerListener: WARN
