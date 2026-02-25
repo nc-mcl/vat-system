@@ -320,3 +320,41 @@ Recommended next agent
 
 Architecture Agent — diagrams are now available as a reference to reconcile open ADR items and the ViDA/threshold boundary gaps. The visual layer makes those decisions easier to reason about with stakeholders.
 
+Handoff Summary
+What I completed
+Fix 1 — Transaction.vatAmount() guard (core-domain/.../domain/Transaction.java)
+
+Added if (classification.rateInBasisPoints() < 0) return MonetaryAmount.ZERO; — root cause of the silent negative VAT on EXEMPT/OUT_OF_SCOPE transactions is now resolved at source.
+
+Fix 2 — Package rename (com.netcompany.vat.coredomain → com.netcompany.vat.domain)
+
+All 21 core-domain source files moved to the domain/ directory with updated package declarations. All tax-engine imports (import com.netcompany.vat.coredomain.*) updated. Git recorded these as renames — history is preserved.
+
+Fix 3 — Cadence-aware filing deadlines (DkJurisdictionPlugin.calculateFilingDeadline())
+
+Replaced the single "10th of following month" rule with a switch on period.cadence():
+
+MONTHLY → 25th of following month
+QUARTERLY / SEMI_ANNUAL / ANNUAL → 1st of 3rd month after period end
+FilingPeriodCalculatorTest updated: 4 deadline tests renamed/reworked, 3 overdue-check instants updated. All tests still pass.
+All 68 tests pass — BUILD SUCCESSFUL, 0 failures, 0 errors (./gradlew :tax-engine:test)
+
+Gradle wrapper jar replaced — the prior jar was truncated (42 KB / corrupted); replaced with a valid Gradle 8.10.2 jar from GitHub.
+
+CLAUDE.md and MEMORY.md updated to reflect the completed rename and corrected deadline rules.
+
+Files created or modified
+File	Change
+core-domain/src/.../domain/Transaction.java	Fixed vatAmount() guard
+core-domain/src/.../domain/**/*.java (21 files)	Renamed from coredomain/
+core-domain/src/.../domain/dk/DkJurisdictionPlugin.java	Cadence-aware deadline switch
+tax-engine/src/.../taxengine/*.java (10 files)	Updated imports coredomain → domain
+tax-engine/src/test/.../FilingPeriodCalculatorTest.java	Deadline values + overdue instants
+tax-engine/src/main/.../FilingPeriodCalculator.java	Updated Javadoc
+gradle/wrapper/gradle-wrapper.jar	Replaced with valid Gradle 8.10.2 jar
+CLAUDE.md	Last Agent Session updated
+Blockers or open questions
+None. All three fixes are complete and test suite is green.
+
+Recommended next agent
+Persistence Agent — core-domain types are now at the correct package (com.netcompany.vat.domain), Transaction.vatAmount() is safe for all tax codes, and filing deadlines are SKAT-accurate. The Persistence Agent can implement VatReturnRepository, TransactionRepository, and the Flyway migration schema against these stable domain types.
