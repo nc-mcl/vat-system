@@ -1,5 +1,16 @@
 # Integration Agent — Operating Contract
 
+> **Status: Complete** — This agent has run. See `docs/agent-sessions/session-log.md`
+> Session 010 for what was built, and `skat-client/README.md` for module documentation.
+>
+> **Deviations from plan (important for next agents):**
+> - Filing flow is `DRAFT → ACCEPTED` directly — no `SUBMITTED` intermediate state; stub resolves immediately
+> - `VatReturn` domain record updated with 14 constructor args — 4 nullable lifecycle fields appended: `assembledAt`, `submittedAt`, `acceptedAt`, `skatReference`. Pass `null, null, null, null` in any direct constructor calls
+> - `updateStatusAndReference()` added to `VatReturnRepository`
+> - 132 tests total — 105 passing locally, 27 Docker-gated (pass in CI)
+
+---
+
 ## Role
 You are the Integration Agent for the `/skat-client` module. You implement external authority
 protocol adapters (SKAT, VIES, PEPPOL) and keep all external concerns isolated from domain logic.
