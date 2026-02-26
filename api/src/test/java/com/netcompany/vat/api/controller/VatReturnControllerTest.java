@@ -15,6 +15,7 @@ import com.netcompany.vat.domain.TaxPeriodStatus;
 import com.netcompany.vat.domain.Transaction;
 import com.netcompany.vat.domain.VatReturn;
 import com.netcompany.vat.domain.VatReturnStatus;
+import com.netcompany.vat.domain.VatRuleError;
 import com.netcompany.vat.persistence.audit.AuditLogger;
 import com.netcompany.vat.persistence.repository.TaxPeriodRepository;
 import com.netcompany.vat.persistence.repository.TransactionRepository;
@@ -238,5 +239,46 @@ class VatReturnControllerTest {
         when(vatReturnRepository.findById(returnId)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> controller.getReturn(returnId));
+    }
+
+    @Test
+    void assembleReturn_noTransactions_returnsNilReturn() {
+        // When no transactions exist → engine returns ZERO result (nulindberetning)
+        VatReturn nilReturn = new VatReturn(
+                returnId, JurisdictionCode.DK, periodId,
+                MonetaryAmount.ZERO, MonetaryAmount.ZERO,
+                MonetaryAmount.ZERO, ResultType.ZERO, MonetaryAmount.ZERO,
+                VatReturnStatus.DRAFT, Collections.emptyMap(),
+                null, null, null, null
+        );
+
+        when(taxPeriodRepository.findById(periodId)).thenReturn(Optional.of(openPeriod));
+        when(vatReturnRepository.findByPeriod(periodId, JurisdictionCode.DK)).thenReturn(Optional.empty());
+        when(transactionRepository.findByPeriod(periodId)).thenReturn(List.of());
+        when(taxEngine.assembleReturn(any(), eq(openPeriod))).thenReturn(Result.ok(nilReturn));
+        when(vatReturnRepository.save(nilReturn)).thenReturn(nilReturn);
+        when(taxPeriodRepository.updateStatus(periodId, TaxPeriodStatus.FILED)).thenReturn(openPeriod);
+
+        AssembleReturnRequest req = new AssembleReturnRequest(periodId.toString(), "DK");
+        ResponseEntity<VatReturnResponse> response = controller.assembleReturn(req);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().netVat()).isEqualTo(0L);
+        assertThat(response.getBody().outputVat()).isEqualTo(0L);
+        assertThat(response.getBody().resultType()).isEqualTo("ZERO");
+    }
+
+    @Test
+    void assembleReturn_periodAlreadyFiled_throws409() {
+        // Engine returns Err(PeriodAlreadyFiled) when period is FILED
+        when(taxPeriodRepository.findById(periodId)).thenReturn(Optional.of(openPeriod));
+        when(vatReturnRepository.findByPeriod(periodId, JurisdictionCode.DK)).thenReturn(Optional.empty());
+        when(transactionRepository.findByPeriod(periodId)).thenReturn(List.of());
+        when(taxEngine.assembleReturn(any(), eq(openPeriod)))
+                .thenReturn(Result.err(new VatRuleError.PeriodAlreadyFiled(periodId)));
+
+        AssembleReturnRequest req = new AssembleReturnRequest(periodId.toString(), "DK");
+
+        assertThrows(InvalidPeriodStateException.class, () -> controller.assembleReturn(req));
     }
 }

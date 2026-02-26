@@ -134,4 +134,81 @@ class TransactionControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody().vatAmount()).isEqualTo(0L);
     }
+
+    @Test
+    void createTransaction_reverseCharge_returnsIsReverseChargeTrue() {
+        when(taxPeriodRepository.findById(periodId)).thenReturn(Optional.of(openPeriod));
+        when(plugin.getVatRateInBasisPoints(TaxCode.REVERSE_CHARGE, LocalDate.of(2026, 1, 15)))
+                .thenReturn(2500L);
+
+        TaxClassification rcClass = new TaxClassification(
+                TaxCode.REVERSE_CHARGE, 2500L, true, LocalDate.of(2026, 1, 15));
+        // RC VAT: 800,000 * 25% = 200,000 øre
+        Transaction saved = new Transaction(
+                UUID.randomUUID(), JurisdictionCode.DK, periodId, null,
+                LocalDate.of(2026, 1, 15), "Cross-border B2B service",
+                MonetaryAmount.ofOere(800_000L), rcClass, Instant.now());
+        when(transactionRepository.save(any())).thenReturn(saved);
+
+        CreateTransactionRequest req = new CreateTransactionRequest(
+                periodId.toString(), "REVERSE_CHARGE", 800_000L, "2026-01-15",
+                "Cross-border B2B service", null);
+
+        ResponseEntity<TransactionResponse> response = controller.createTransaction(req);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().isReverseCharge()).isTrue();
+        assertThat(response.getBody().vatAmount()).isEqualTo(200_000L); // 25% of 800,000
+        assertThat(response.getBody().taxCode()).isEqualTo("REVERSE_CHARGE");
+    }
+
+    @Test
+    void createTransaction_exempt_returnsZeroVatAndNotReverseCharge() {
+        when(taxPeriodRepository.findById(periodId)).thenReturn(Optional.of(openPeriod));
+        when(plugin.getVatRateInBasisPoints(TaxCode.EXEMPT, LocalDate.of(2026, 1, 15)))
+                .thenReturn(-1L);
+
+        TaxClassification exemptClass = new TaxClassification(
+                TaxCode.EXEMPT, -1L, false, LocalDate.of(2026, 1, 15));
+        // Exempt: MOMS rate = -1 (not applicable) → vatAmount() returns ZERO
+        Transaction saved = new Transaction(
+                UUID.randomUUID(), JurisdictionCode.DK, periodId, null,
+                LocalDate.of(2026, 1, 15), "Medical service — ML §13",
+                MonetaryAmount.ofOere(500_000L), exemptClass, Instant.now());
+        when(transactionRepository.save(any())).thenReturn(saved);
+
+        CreateTransactionRequest req = new CreateTransactionRequest(
+                periodId.toString(), "EXEMPT", 500_000L, "2026-01-15",
+                "Medical service", null);
+
+        ResponseEntity<TransactionResponse> response = controller.createTransaction(req);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().vatAmount()).isEqualTo(0L);
+        assertThat(response.getBody().isReverseCharge()).isFalse();
+        assertThat(response.getBody().taxCode()).isEqualTo("EXEMPT");
+    }
+
+    @Test
+    void createTransaction_withCounterpartyId_persistsCounterpartyReference() {
+        when(taxPeriodRepository.findById(periodId)).thenReturn(Optional.of(openPeriod));
+
+        UUID counterpartyId = UUID.randomUUID();
+        TaxClassification cls = new TaxClassification(
+                TaxCode.STANDARD, 2500L, false, LocalDate.of(2026, 1, 15));
+        Transaction saved = new Transaction(
+                UUID.randomUUID(), JurisdictionCode.DK, periodId, counterpartyId,
+                LocalDate.of(2026, 1, 15), "Sale to known counterparty",
+                MonetaryAmount.ofOere(100_000L), cls, Instant.now());
+        when(transactionRepository.save(any())).thenReturn(saved);
+
+        CreateTransactionRequest req = new CreateTransactionRequest(
+                periodId.toString(), "STANDARD", 100_000L, "2026-01-15",
+                "Sale to known counterparty", counterpartyId.toString());
+
+        ResponseEntity<TransactionResponse> response = controller.createTransaction(req);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody().counterpartyId()).isEqualTo(counterpartyId.toString());
+    }
 }

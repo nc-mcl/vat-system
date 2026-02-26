@@ -57,6 +57,45 @@
 ### Next Agent
 **Testing Agent**
 
+## Session 011 — Testing Agent
+**Date:** 2026-02-26
+**Status on entry:** Full Phase 1 SKAT integration wired; 132 tests (105 passing, 27 Docker-skipped); no dedicated tests for core-domain types or persistence lifecycle.
+**Status on exit:** Comprehensive test suite complete; 72 new core-domain tests; persistence lifecycle IT; 3 new API IT scenarios; SKAT rejection IT; coverage matrix at 61.5% (40/65 rules).
+
+### What Was Done
+- Created `MonetaryAmountTest` (20+ tests): arithmetic, immutability, large amounts (Risk R17 overflow guard).
+- Created `VatReturnTest` (15+ tests): netVat derivation, PAYABLE/CLAIMABLE/ZERO result types, claimAmount, all 14 fields across both factory overloads.
+- Created `DkJurisdictionPluginTest` (25+ tests): all 5 tax codes, all cadence thresholds with boundary cases (500M, 500M+1, 5B, 5B+1 øre), all 9 deadline variants, leap year handling, reverse charge applicability, `isVidaEnabled()=false`.
+- Fixed expected value in `deadline_quarterly_october_endBoundary`: Oct 31 + 3 months = Jan 31; `withDayOfMonth(1)` = Jan 1 2027 (not Feb 1). Test comment updated to explain Java date arithmetic.
+- Created `VatReturnLifecycleIT` (10+ Docker-gated tests): `assembledAt` set on save, all 14 fields persisted, NIL return ResultType.ZERO, ACCEPTED with skatReference, REJECTED with null skatReference, persists across reload, full audit lifecycle (ASSEMBLED → SUBMITTED → ACCEPTED events in order), append-only audit log, RETURN_REJECTED event, `findByStatus` filtering.
+- Created `VatFilingRejectedIT` (Scenario D — separate Spring context `skat.stub.response=REJECTED`): open period → add STANDARD transaction → assemble → submit → verify REJECTED status, null skatReference → GET confirms persistence.
+- Extended `VatFilingFlowIT` with three new scenarios:
+  - Scenario B: EXEMPT-only period (medical + education under ML §13) → ZERO result (nulindberetning) → submit → ACCEPTED.
+  - Scenario C: REVERSE_CHARGE transaction → verify `isReverseCharge=true`, `vatAmount=200K`, `rubrikA=800K`, `resultType=ZERO` → submit → ACCEPTED.
+  - Scenario D: Mixed STANDARD + ZERO_RATED → verify `outputVat=100K`, `rubrikB=500K`, `resultType=PAYABLE`.
+- Extended `TaxPeriodControllerTest`: unknown jurisdiction throws IAE, all three cadences accepted, invalid cadence string, FILED status returned.
+- Extended `TransactionControllerTest`: REVERSE_CHARGE with `isReverseCharge=true` and `vatAmount=200K`, EXEMPT with `vatAmount=0`, counterpartyId persisted.
+- Extended `VatReturnControllerTest`: NIL return assembly (ZERO result), PeriodAlreadyFiled → 409 Conflict.
+- Created `docs/analysis/test-coverage-matrix.md`: 65-rule matrix across 8 categories; 40/65 covered (61.5%); Phase 2 gap backlog (G1–G7) documented.
+- Updated root `README.md` status table: End-to-End Tests → Done.
+
+### What the Next Agent Needs to Know
+- **core-domain tests now at 72** — all pass without Docker. Modules: `MonetaryAmountTest`, `VatReturnTest`, `DkJurisdictionPluginTest`.
+- **VatFilingRejectedIT** uses a separate Spring context with `properties = "skat.stub.response=REJECTED"` — it must not be merged into `VatFilingFlowIT` (different application context properties).
+- **CLAIMABLE result not achievable via REST API in Phase 1** — `VatReturnAssembler` routes STANDARD as output-only and REVERSE_CHARGE as net-zero. A `transactionDirection` flag is needed for domestic input-only purchases (Gap G1, Phase 2).
+- **Coverage matrix** at `docs/analysis/test-coverage-matrix.md` — 40/65 rules covered. Priority uncovered gaps: R12 (correction/credit notes), R14 (OSS), R22 (PEPPOL invoice), R23 (DRR), R26–R31 (advanced reverse charge variants).
+- **Rubrik routing** is MVP only: REVERSE_CHARGE → rubrikA (treated as services), ZERO_RATED → rubrikB (treated as services), goods/services split requires `transactionType` field (Gap G2, Phase 2).
+- **Test counts (final):**
+  - `core-domain`: 72 tests, all passing
+  - `tax-engine`: 68 tests, all passing
+  - `api` unit: ~24 tests, all passing
+  - `api` IT: 4 Docker-gated scenarios (VatFilingFlowIT ×3 + VatFilingRejectedIT ×1)
+  - `persistence` IT: 10+ Docker-gated (VatReturnLifecycleIT + existing ITs)
+  - `skat-client`: 3 unit test classes, all passing
+
+### Next Agent
+**Reporting Agent** — implement VAT return report generation (SKAT rubrik XML format, SAF-T export), or **Phase 2 Planning Agent** to scope ViDA DRR, OSS extension, and PEPPOL BIS 3.0 implementation.
+
 <!-- APPEND NEW SESSIONS ABOVE THIS LINE -->
 
 ## Session 008 � API Agent

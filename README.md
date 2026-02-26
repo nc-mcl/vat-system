@@ -35,9 +35,9 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | Persistence | ✅ Done | PostgreSQL schema, Flyway migrations, JOOQ repositories, audit ledger |
 | REST API | ✅ Done | Spring Boot REST endpoints, Bean Validation, DTOs, 17 tests passing |
 | SKAT Integration | ✅ Done | SkatClient/ViesClient/PeppolClient interfaces + Phase 1 stubs; full submit flow wired |
-| End-to-End Tests | ⏳ Pending | Full filing scenarios against SKAT sandbox |
+| End-to-End Tests | ✅ Done | 4 filing scenarios (STANDARD, NIL/EXEMPT, REVERSE_CHARGE, SKAT REJECTED); 72 new core-domain tests; persistence lifecycle IT; coverage matrix |
 
-<!-- Last updated by: Integration Agent — 2026-02-25 -->
+<!-- Last updated by: Testing Agent — 2026-02-26 -->
 
 ### Phase 1 Roadmap
 

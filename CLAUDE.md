@@ -186,33 +186,41 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
-**Agent:** Integration Agent
-**Date:** 2026-02-25
+**Agent:** Testing Agent
+**Date:** 2026-02-26
 **Next agent can proceed:** yes
 **Blockers for next agent:** none
 
 ### What was done
 
-- **`VatReturn` domain record extended** — added `assembledAt`, `submittedAt`, `acceptedAt`, `skatReference` nullable fields. Added 11-param `VatReturn.of()` overload; kept 7-param overload for backward compatibility.
-- **`VatReturnRepository`** — added `updateStatusAndReference(UUID, VatReturnStatus, Instant, String)` to interface and `JooqVatReturnRepository`.
-- **`VatReturnMapper`** — updated `fromRecord()` to populate four new timestamp/reference columns from DB.
-- **`JooqVatReturnRepository.save()`** — now sets `assembled_at` in DB and returns domain object with `assembledAt` populated.
-- **`skat-client` module** — fully implemented: `SkatClient`, `ViesClient`, `PeppolClient` interfaces; `SkatClientStub`, `ViesClientStub`, `PeppolClientStub`; `SkatClientProperties`, `ViesClientProperties`, `SkatClientConfiguration`; `SkatSubmissionRequest`, `ViesValidationRequest` DTOs; `SkatMapper`; `SkatUnavailableException`, `ViesUnavailableException`; `application-skat.yml`.
-- **API wiring** — `ApiApplication` scans `com.netcompany.vat.skatclient`; `application.yml` includes `skat` profile; `VatReturnController.submitReturn()` calls real `SkatClient`; `GlobalExceptionHandler` handles 503 for `SkatUnavailableException`.
-- **Tests updated** — `VatReturnControllerTest` adds `SkatClient` mock and REJECTED/UNAVAILABLE test cases; `VatFilingFlowIT` now verifies ACCEPTED status and `skatReference` after submit.
-- **New unit tests** — `SkatClientStubTest`, `ViesClientStubTest`, `SkatMapperTest` (no Docker required).
-- **132 tests total** — 105 passing, 27 skipped (Docker-gated IT tests).
+- **`MonetaryAmountTest`** (core-domain, 20+ tests) — arithmetic, immutability, large amounts (Risk R17 overflow guard).
+- **`VatReturnTest`** (core-domain, 15+ tests) — netVat derivation, PAYABLE/CLAIMABLE/ZERO result types, claimAmount, nullable lifecycle fields across both factory overloads and 14-arg constructor.
+- **`DkJurisdictionPluginTest`** (core-domain, 25+ tests) — all 5 tax codes with expected basis points, all 3 cadence thresholds with boundary cases (500M/500M+1/5B/5B+1 øre), all 9 deadline variants (3 monthly + 4 quarterly + 2 semi-annual), leap year handling, reverse charge applicability, `isVidaEnabled()=false`.
+- **Fixed `deadline_quarterly_october_endBoundary`** — expected value corrected from Feb 1 to Jan 1 2027 (Oct 31 + `plusMonths(3)` = Jan 31 in Java; `withDayOfMonth(1)` = Jan 1, not Feb 1).
+- **`VatReturnLifecycleIT`** (persistence, 10+ Docker-gated tests) — `assembledAt` set on save, all 14 fields persisted correctly, NIL return `ResultType.ZERO`, ACCEPTED/REJECTED transitions with and without `skatReference`, persistence across reload, full audit lifecycle (ASSEMBLED → SUBMITTED → ACCEPTED events in order), append-only verification, `findByStatus` filtering.
+- **`VatFilingRejectedIT`** (api IT, separate Spring context `skat.stub.response=REJECTED`) — Scenario D full E2E: DRAFT → REJECTED, null `skatReference`, GET confirms persistence.
+- **`VatFilingFlowIT` extended** — Scenario B (EXEMPT-only → ZERO/nulindberetning → ACCEPTED), Scenario C (REVERSE_CHARGE → rubrikA, net zero → ACCEPTED), Scenario D (STANDARD + ZERO_RATED → rubrikB, PAYABLE → ACCEPTED).
+- **Controller unit tests extended** — `TaxPeriodControllerTest` (+4), `TransactionControllerTest` (+3), `VatReturnControllerTest` (+2: NIL return, PeriodAlreadyFiled 409).
+- **`docs/analysis/test-coverage-matrix.md`** — 65-rule coverage matrix; 40/65 rules covered (61.5%); Phase 2 gap backlog (G1–G7) documented.
+- **Root `README.md`** — End-to-End Tests → ✅ Done.
+- **core-domain tests: 72 (was 0)** — all pass without Docker.
 
 ### What the next agent needs to know
 
-1. **`VatReturn` constructor** now requires 14 arguments — 4 nullable timestamp/reference fields appended. All direct `new VatReturn(...)` calls must be updated.
-2. **Stub response mode** — `SKAT_STUB_RESPONSE=ACCEPTED|REJECTED|UNAVAILABLE` env var controls stub behaviour.
-3. **Phase 2 upgrade** — replace `SkatClientStub` with `SkatClientImpl` in `SkatClientConfiguration`; add SKAT API key to k8s secrets template.
-4. **PEPPOL is Phase 2** — `PeppolClientStub` throws `UnsupportedOperationException`; do not implement until Phase 2.
-5. **Known gaps** — G2 (rubrik goods/services split), G3 (counterparty country routing), G5 (transaction direction) remain unresolved from the BA analysis.
+1. **CLAIMABLE not achievable via REST in Phase 1** — `VatReturnAssembler` routes STANDARD as output-only; no `transactionDirection` field. Domestic input-only purchases need G1 gap resolution (Phase 2).
+2. **`VatFilingRejectedIT` must stay separate** — uses `@SpringBootTest(properties = "skat.stub.response=REJECTED")`, a different application context from `VatFilingFlowIT`. Do not merge.
+3. **Coverage matrix at 61.5%** — priority uncovered: R12 (corrections/credit notes), R14 (OSS), R22 (PEPPOL invoice), R26–R31 (advanced reverse charge variants). See `docs/analysis/test-coverage-matrix.md`.
+4. **Rubrik routing is MVP** — REVERSE_CHARGE → rubrikA (services assumed), ZERO_RATED → rubrikB (services assumed). Goods/services split (Gap G2) requires `transactionType` field in Phase 2.
+5. **Final test counts:**
+   - `core-domain`: 72 passing
+   - `tax-engine`: 68 passing
+   - `api` unit: ~24 passing
+   - `api` IT: 4 Docker-gated scenarios (VatFilingFlowIT ×3 + VatFilingRejectedIT ×1)
+   - `persistence` IT: 10+ Docker-gated (VatReturnLifecycleIT + 5 existing ITs)
+   - `skat-client`: unit tests (no Docker) all passing
 
 ### Recommended next agent
-**Testing Agent** — comprehensive test suite including filing scenarios, error paths, and SKAT rejection handling against the stub.
+**Reporting Agent** — implement VAT return report generation (SKAT rubrik XML, SAF-T export). Alternatively, **Phase 2 Planning Agent** to scope ViDA DRR, OSS extension, PEPPOL BIS 3.0, and the `transactionDirection` field needed for CLAIMABLE results.
 
 ---
 

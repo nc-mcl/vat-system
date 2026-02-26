@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -103,5 +104,55 @@ class TaxPeriodControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).hasSize(1);
+    }
+
+    @Test
+    void openPeriod_unknownJurisdiction_throwsIllegalArgumentException() {
+        // JurisdictionCode.fromString("UNKNOWN") throws IllegalArgumentException.
+        // This is propagated from the controller (no try-catch) and mapped by
+        // GlobalExceptionHandler to 400 Bad Request in the full web stack.
+        OpenPeriodRequest req = new OpenPeriodRequest("UNKNOWN", "2026-01-01", "2026-03-31", "QUARTERLY");
+
+        assertThrows(IllegalArgumentException.class, () -> controller.openPeriod(req));
+    }
+
+    @Test
+    void openPeriod_allCadences_areAccepted() {
+        // Verify that all four valid cadence values parse without error.
+        String[] cadences = {"MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"};
+        TaxPeriod saved = new TaxPeriod(
+                UUID.randomUUID(), JurisdictionCode.DK,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+                FilingCadence.QUARTERLY, TaxPeriodStatus.OPEN);
+        when(taxPeriodRepository.save(any(), any())).thenReturn(saved);
+
+        for (String cadence : cadences) {
+            OpenPeriodRequest req = new OpenPeriodRequest("DK", "2026-01-01", "2026-03-31", cadence);
+            // Should not throw — all cadences are valid FilingCadence enum values
+            assertDoesNotThrow(() -> controller.openPeriod(req),
+                    "Expected openPeriod to succeed for cadence: " + cadence);
+        }
+    }
+
+    @Test
+    void openPeriod_invalidCadence_throwsIllegalArgumentException() {
+        OpenPeriodRequest req = new OpenPeriodRequest("DK", "2026-01-01", "2026-03-31", "DAILY");
+
+        assertThrows(IllegalArgumentException.class, () -> controller.openPeriod(req));
+    }
+
+    @Test
+    void getPeriod_filedStatus_isReturnedCorrectly() {
+        UUID id = UUID.randomUUID();
+        TaxPeriod filed = new TaxPeriod(
+                id, JurisdictionCode.DK,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31),
+                FilingCadence.QUARTERLY, TaxPeriodStatus.FILED);
+        when(taxPeriodRepository.findById(id)).thenReturn(Optional.of(filed));
+
+        ResponseEntity<TaxPeriodResponse> response = controller.getPeriod(id);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().status()).isEqualTo("FILED");
     }
 }
