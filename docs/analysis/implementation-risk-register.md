@@ -43,7 +43,8 @@ Risks are assessed by an AI agent cross-referencing public SKAT sources. Risk ra
 | R16 | Ordinary correction window of 3 years not enforced | Corrections | Low | High | System must reject ordinary corrections for periods >3 years old; provide separate path for extraordinary corrections with appropriate workflow |
 | R17 | Monetary arithmetic using floating point | Calculation engine | Low | Critical | All VAT amounts must use long/integer arithmetic in øre (smallest currency unit); rates stored as basis points (2500 = 25%); never use double or float |
 | R18 | Rule version not captured at filing time | Audit / compliance | Medium | High | Every filing and calculation must record rule_version_id; recalculation under a different rule version must produce a traceable difference |
-| R19 | OIOUBL 2.1 e-invoices accepted after May 15, 2026 phase-out | ViDA / e-invoicing | High | High | System must validate incoming e-invoice format; reject OIOUBL 2.1 after its phase-out date; default to OIOUBL 3.0 / PEPPOL BIS 3.0 |
+| R19 | Status: NOT APPLICABLE — POC scope only. No real B2G invoices processed.
+Revisit if system moves to production handling real NemHandel traffic.
 | R20 | ViDA DRR not implemented before January 1, 2028 deadline | ViDA / DRR | High | Critical | Architecture must be ViDA-ready; DRR reporting module must be in the backlog as a tracked milestone; EU cross-border transactions must be structured to support real-time reporting |
 | R21 | VIES validation failure causes wrong customer classification | Cross-border | Medium | High | VIES lookup must be time-stamped and cached; validation failure must not silently default to B2C; must alert and halt or queue for review |
 | R22 | Pro-rata percentage not reported to SKAT annually (required from 2024) | Input VAT deduction | High | Medium | System must expose a report/submission path for the annual pro-rata percentage; this is a new 2024 compliance requirement |
@@ -76,3 +77,15 @@ Risks are assessed by an AI agent cross-referencing public SKAT sources. Risk ra
 - Risk R19 (OIOUBL 2.1 phase-out) is **time-critical**: deadline is May 15, 2026 — approximately 2.5 months from this document date.
 - Risk R20 (ViDA DRR) has a **January 1, 2028** deadline — approximately 23 months. Architecture scaffolding should begin in Phase 2.
 - Risks R01, R08, R23 depend on expert confirmation of allocation and classification rules before implementation.
+
+---
+
+## Gap Status Updates (Expert Agent Session 012 — 2026-02-26)
+
+> Expert review of gaps G2, G3, G5 completed. See `docs/analysis/expert-review-answers-rubrik.md` for full answers.
+
+| Gap | Area | Previous status | Updated status | Notes |
+|---|---|---|---|---|
+| G2 — Goods vs Services Split (rubrik A/B sub-fields) | Reporting fields | OPEN | **RESOLVED** | Rubrik A and Rubrik B each have separate goods and services sub-fields. `transactionType: GOODS \| SERVICES` and `counterpartyJurisdiction: EU \| NON_EU \| DOMESTIC` are required on `Transaction` (Phase 2 implementation). Routing rules confirmed HIGH confidence. |
+| G3 — Non-EU Services in Rubrik A | Reporting fields (Risk R14) | OPEN | **PARTIALLY RESOLVED** | EU service purchases → `rubrikAServicesEuPurchaseValue` + Box 4 (HIGH confidence). Non-EU service purchases → Box 4 VAT only, net value NOT in any rubrik field (MEDIUM confidence). Professional review recommended before go-live. Risk R14 is partially mitigated. |
+| G5 — Construction Reverse Charge (ML §46 stk. 1 nr. 3) | Reverse charge (Risk R06) | OPEN | **RESOLVED** | Applies to all VAT-registered buyers based on service nature, not buyer sector. Momsangivelse routing: Box 1 (self-accounted VAT) + Box 2 (deduction). NOT Box 4 (Box 4 is for foreign services only). Deferral to Phase 2 assessed as low-medium risk. Risk R06 is partially mitigated. |

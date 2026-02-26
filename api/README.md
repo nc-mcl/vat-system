@@ -16,11 +16,16 @@ modules and provides REST endpoints for the full VAT filing lifecycle.
 | `POST` | `/api/v1/transactions` | Submit a VAT transaction to an open period |
 | `GET` | `/api/v1/transactions?periodId={id}` | List transactions for a period |
 | `POST` | `/api/v1/returns/assemble` | Assemble a draft VAT return for a period |
-| `POST` | `/api/v1/returns/{id}/submit` | Submit a return to SKAT (stub — Integration Agent pending) |
+| `POST` | `/api/v1/returns/{id}/submit` | Submit a return to SKAT |
 | `GET` | `/api/v1/returns/{id}` | Get a VAT return by ID |
 | `GET` | `/api/v1/returns?periodId={id}` | Get return for a period |
 | `POST` | `/api/v1/counterparties` | Register a counterparty |
 | `GET` | `/api/v1/counterparties/{id}` | Get a counterparty by ID |
+| `GET` | `/api/v1/reporting/returns/{id}/momsangivelse` | Get formatted DK momsangivelse (all rubrik fields) |
+| `GET` | `/api/v1/reporting/returns/{id}/payload` | Get full report payload with metadata |
+| `GET` | `/api/v1/reporting/returns/{id}/saft` | **[Phase 2 stub]** SAF-T XML export → 501 |
+| `POST` | `/api/v1/reporting/returns/{id}/drr` | **[Phase 2 stub]** ViDA DRR submission → 501 |
+| `GET` | `/api/v1/reporting/returns/{id}/eu-salgsangivelse` | **[Phase 2 stub]** EU Sales List → 501 |
 | `GET` | `/actuator/health/liveness` | Kubernetes liveness probe |
 | `GET` | `/actuator/health/readiness` | Kubernetes readiness probe |
 | `GET` | `/actuator/metrics` | Prometheus metrics |
@@ -87,6 +92,7 @@ The API starts on `http://localhost:8080`. Swagger UI is at `http://localhost:80
 ```bash
 unset GRADLE_OPTS
 ./gradlew :api:test --tests "com.netcompany.vat.api.controller.*"
+./gradlew :api:test --tests "com.netcompany.vat.api.reporting.*"
 ```
 
 ### Integration tests (Docker required)
@@ -138,8 +144,19 @@ api/
       InvalidPeriodStateException.java  ← → 409
     handler/
       GlobalExceptionHandler.java       ← Maps exceptions to JSON error responses
+    reporting/
+      DkMomsangivelse.java              ← Formatted DK VAT return record (all box + rubrik fields)
+      DkVatReturnFormatter.java         ← Formats VatReturn + jurisdictionFields → DkMomsangivelse
+      VatReportPayload.java             ← Report payload envelope (metadata + momsangivelse)
+      VatReportingService.java          ← Orchestrates report generation (read-only)
+      ReportingController.java          ← /api/v1/reporting/* (Phase 1 + Phase 2 stubs)
+      SaftReportingService.java         ← Phase 2 stub: SAF-T XML export
+      ViDaDrrService.java               ← Phase 2 stubs: ViDA DRR + EU-salgsangivelse
   src/test/java/com/netcompany/vat/api/
     controller/                         ← Unit tests (Mockito, no Spring context)
+    reporting/
+      DkVatReturnFormatterTest.java     ← 9 tests covering all rubrik routing cases
+      ReportingControllerTest.java      ← 9 tests covering controller endpoints and Phase 2 stubs
     it/
       VatFilingFlowIT.java              ← Phase 1 proof-of-life (Testcontainers)
 ```
@@ -179,5 +196,9 @@ Readiness probe: `GET /actuator/health/readiness`
 - **No domain logic in the API layer** — controllers orchestrate only; all VAT calculation lives in `tax-engine`
 - **Audit first** — `AuditLogger.log()` is called before every state-changing database operation
 - **Monetary values** — always `long` in øre on the wire and in domain objects; never `double` or `BigDecimal`
-- **SKAT submission stub** — `POST /api/v1/returns/{id}/submit` returns `202 Accepted` with a note that SKAT filing is pending the Integration Agent
+- **SKAT submission** — `POST /api/v1/returns/{id}/submit` calls `SkatClient` and transitions the return to ACCEPTED or REJECTED
 - **Period locking** — after return assembly, the period transitions to `FILED` to prevent further transaction additions
+- **Reporting is read-only** — `ReportingController` generates payloads from persisted returns without modifying domain state
+- **Phase 1 reporting** — `GET /api/v1/reporting/returns/{id}/momsangivelse` returns the full DK rubrik breakdown including all separate goods/services and box fields
+- **Phase 2 stubs** — SAF-T, ViDA DRR, EU-salgsangivelse endpoints exist and return 501 with clear messages until Phase 2 is implemented
+- **`UnsupportedOperationException` handling** — `GlobalExceptionHandler` maps Phase 2 stubs to HTTP 501 Not Implemented

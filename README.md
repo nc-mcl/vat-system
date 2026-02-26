@@ -26,7 +26,7 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 
 | Layer | Status | Description |
 |---|---|---|
-| Domain Knowledge | ✅ Done | 32 verified Danish VAT rules, risk register, gap analysis |
+| Domain Knowledge | ✅ Done | 32 verified Danish VAT rules, risk register, gap analysis; G2/G3/G5 expert review completed |
 | Architecture | ✅ Done | Java 21, Spring Boot, Gradle multi-module, jurisdiction plugin pattern |
 | Core Domain | ✅ Done | All Java types, DK plugin, `MonetaryAmount`, `Result<T>` |
 | Tax Engine | ✅ Done | 68 tests passing — VAT calculation, classification, filing periods |
@@ -36,8 +36,9 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | REST API | ✅ Done | Spring Boot REST endpoints, Bean Validation, DTOs, 17 tests passing |
 | SKAT Integration | ✅ Done | SkatClient/ViesClient/PeppolClient interfaces + Phase 1 stubs; full submit flow wired |
 | End-to-End Tests | ✅ Done | 4 filing scenarios (STANDARD, NIL/EXEMPT, REVERSE_CHARGE, SKAT REJECTED); 72 new core-domain tests; persistence lifecycle IT; coverage matrix |
+| Reporting | ✅ Done | DK momsangivelse formatter; VatReportingService; ReportingController with Phase 1 + Phase 2 stub endpoints; 18 new tests |
 
-<!-- Last updated by: Testing Agent — 2026-02-26 -->
+<!-- Last updated by: Reporting Agent — 2026-02-26 -->
 
 ### Phase 1 Roadmap
 
@@ -246,13 +247,18 @@ See `infrastructure/README.md` for full deployment instructions.
 
 ## Known Gaps (resolve before production)
 
-The Business Analyst Agent identified three gaps that need expert review before real SKAT filings:
+Expert review completed 2026-02-26. See `docs/analysis/expert-review-answers-rubrik.md` for full routing decisions.
 
-- **G2** — Exact filing deadlines for monthly filers (current implementation is a best estimate)
-- **G3** — Non-EU service rubrik scope (which rubriks apply to non-EU services is unclear)
-- **G5** — Construction reverse charge under Momslovens §46 (unconfirmed)
+| Gap | Status | Summary |
+|---|---|---|
+| G2 — Goods vs Services rubrik split | ✅ RESOLVED | Rubrik A and Rubrik B each have separate goods/services sub-fields. Requires `transactionType` on `Transaction` (Phase 2). |
+| G3 — Non-EU services rubrik routing | 🔄 PARTIALLY RESOLVED | EU services → Rubrik A services (HIGH confidence). Non-EU services → Box 4 VAT only, no net value rubrik (MEDIUM confidence — professional review before go-live). |
+| G5 — Construction reverse charge (ML §46 stk. 1 nr. 3) | ✅ RESOLVED | Applies to all buyers by service nature. Routes to Box 1 + Box 2 (NOT Box 4). Safe to defer to Phase 2. |
 
-These do not block continued development but must be resolved before going live.
+**Remaining Phase 2 requirements identified by expert review:**
+- `Transaction` model needs `transactionType: GOODS | SERVICES` for correct rubrik A/B split
+- `Transaction` model needs `counterpartyJurisdiction: EU | NON_EU | DOMESTIC` for correct EU vs non-EU routing
+- Domestic reverse charge categories (ML §46 stk. 1 nr. 3-6) need new `TaxCode` values
 
 ---
 

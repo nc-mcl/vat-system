@@ -69,6 +69,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "BAD_REQUEST", "message", ex.getMessage()));
     }
 
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<Map<String, Object>> handleNotImplemented(UnsupportedOperationException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                .body(Map.of("error", "NOT_IMPLEMENTED", "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
         log.error("Unexpected error", ex);

@@ -186,6 +186,40 @@ what it does, how to build, how to run, how to test, and all environment variabl
 
 ## Last Agent Session
 
+**Agent:** Reporting Agent
+**Date:** 2026-02-26
+**Next agent can proceed:** yes
+**Blockers for next agent:** none
+
+### What was done
+
+- Implemented full reporting layer in `api` module under `com.netcompany.vat.api.reporting`.
+- **`DkMomsangivelse`** — structured record exposing all SKAT momsangivelse fields: Box 1–4, Rubrik A goods/services, Rubrik B goods/services, Rubrik C, plus `phase1LimitationNote` documenting MVP approximations.
+- **`DkVatReturnFormatter`** — maps `VatReturn.jurisdictionFields()` to `DkMomsangivelse`. Uses `VatReturnAssembler` field constants. Null-safe defaults to 0. `@Component`.
+- **`VatReportingService`** — read-only service with `generateMomsangivelse(UUID)` and `generatePayload(UUID)`. Validates DK jurisdiction. `@Service`.
+- **`SaftReportingService`** — Phase 2 stub; throws `UnsupportedOperationException` with SAF-T Financial (DK 1.0) scope note.
+- **`ViDaDrrService`** — Phase 2 stubs for ViDA DRR submission and EU-salgsangivelse generation.
+- **`ReportingController`** — `GET /api/v1/reporting/returns/{id}/momsangivelse`, `GET /api/v1/reporting/returns/{id}/payload` (Phase 1); `GET /saft`, `POST /drr`, `GET /eu-salgsangivelse` (Phase 2 stubs → 501).
+- **`GlobalExceptionHandler`** — added `UnsupportedOperationException` handler → HTTP 501 Not Implemented.
+- **18 new tests** — `DkVatReturnFormatterTest` (9) + `ReportingControllerTest` (9). All passing. api unit tests: 45 total.
+- Updated `api/README.md` and root `README.md` status table.
+- Appended Session 013 to `docs/agent-sessions/session-log.md`.
+
+### What the next agent needs to know
+
+1. **`GET /api/v1/reporting/returns/{id}/momsangivelse`** returns a `DkMomsangivelse` with all individual rubrik sub-fields. Use this as the primary reporting output for SKAT momsangivelse.
+2. **Phase 1 limitation note** is embedded in every `DkMomsangivelse` — REVERSE_CHARGE treated as EU services, ZERO_RATED treated as EU services/goods. Fix requires `Transaction.transactionType` and `Transaction.counterpartyJurisdiction` (Phase 2).
+3. **Box 3 (`vatOnGoodsPurchasesAbroadAmount`) is 0 in Phase 1** — EU goods acquisition VAT not tracked separately yet. Requires `transactionType = GOODS` in Phase 2.
+4. **Phase 2 stubs** — `SaftReportingService`, `ViDaDrrService` throw `UnsupportedOperationException` → 501. Replace stub implementations in Phase 2.
+5. **api test counts:** 45 unit tests passing, 6 Docker-gated ITs (skip locally, pass in CI).
+
+### Recommended next agent
+**Phase 2 Planning Agent** or **ViDA Agent** — scope `Transaction.transactionType`, `Transaction.counterpartyJurisdiction`, SAF-T implementation, ViDA DRR, and PEPPOL BIS 3.0.
+
+---
+
+## Previous Last Agent Session
+
 **Agent:** Testing Agent
 **Date:** 2026-02-26
 **Next agent can proceed:** yes

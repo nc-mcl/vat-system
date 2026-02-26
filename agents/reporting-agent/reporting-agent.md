@@ -13,6 +13,10 @@ Reporting transforms existing persisted/domain data into authority-facing payloa
 4. Load analysis docs via `get_business_analyst_context_bundle`:
    - `docs/analysis/dk-vat-rules-validated.md`
    - `docs/analysis/implementation-risk-register.md`
+5. Read `docs/analysis/expert-review-answers-rubrik.md` — this is the
+   definitive rubrik routing reference. The summary table at the top
+   defines all field mappings. G3 non-EU service net value is MEDIUM
+   confidence — add explicit code comments where implemented.
 
 ## Current Module Reality
 - `api` has controllers for periods/transactions/returns, but no reporting-specific services or endpoints yet.

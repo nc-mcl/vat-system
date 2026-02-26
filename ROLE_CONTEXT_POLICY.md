@@ -445,3 +445,13 @@ This is non-negotiable and must happen before printing the Handoff Summary.
 ### Next Agent
 **{Name of the recommended next agent}**
 
+## Forward Contract Updates
+
+Before finishing, each agent must:
+1. Identify which agent runs next (from the session log or orchestrator recommendations)
+2. Open that agent's contract file
+3. Add any new file references, resolved gaps, or findings to the
+   "Before You Start" section that the next agent will need
+4. Do not rewrite existing instructions — only append new context
+5. Document what was added in the session log handoff summary
+
