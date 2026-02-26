@@ -231,6 +231,23 @@ stating that a handoff document was produced and why.
 
 ---
 
+## Pre-Spawn Contract Review
+
+Before spawning each subagent, read its contract and verify:
+
+1. The "Before You Start" file list includes any outputs produced
+   by agents that have run since the contract was last updated
+2. Any gaps or findings referenced in the session log since the
+   last time this agent ran are reflected in the contract
+3. If the contract is stale, prepend a "## Context Update [date]"
+   section with the missing file references and key findings
+
+Do not rewrite the existing contract — only prepend new context.
+This makes spawning safe even if the Forward Contract Update rule
+was not followed by a previous agent.
+
+---
+
 ## What the Orchestrator Never Does
 
 - Does not write Java source files
