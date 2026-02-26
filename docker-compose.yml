@@ -1,5 +1,4 @@
 services:
-
   api:
     build:
       context: .
@@ -16,7 +15,6 @@ services:
         condition: service_healthy
     networks:
       - vat-network
-
   postgres:
     image: postgres:16-alpine
     environment:
@@ -25,7 +23,6 @@ services:
       POSTGRES_PASSWORD: vat_dev_password
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infrastructure/db/migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -35,7 +32,6 @@ services:
       retries: 10
     networks:
       - vat-network
-
   adminer:
     image: adminer:latest
     ports:
@@ -44,10 +40,8 @@ services:
       - postgres
     networks:
       - vat-network
-
 volumes:
   postgres-data:
-
 networks:
   vat-network:
     driver: bridge
