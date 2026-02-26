@@ -9,6 +9,7 @@ infrastructure/
   k8s/
     cluster/        — Namespace, ingress, secrets template
     api/            — API Deployment, Service, ConfigMap, HPA
+    mcp-server/     — MCP Server Deployment, Service, ConfigMap, HPA
     postgres/       — PostgreSQL StatefulSet and headless Service
   db/
     migrations/     — Flyway SQL migration scripts (also used by docker-compose)
@@ -41,13 +42,14 @@ docker compose exec dev bash
 
 ## Local Development (without dev container)
 
-Start the full stack (API + PostgreSQL + Adminer) from the project root:
+Start the full stack (API + PostgreSQL + MCP server + Adminer) from the project root:
 
 ```bash
 docker compose up -d
 ```
 
 - VAT API: [http://localhost:8080](http://localhost:8080)
+- MCP server: [http://localhost:3000](http://localhost:3000)
 - Adminer: [http://localhost:8090](http://localhost:8090) — server: `postgres`, user: `vat`, password: `vat_dev_password`
 
 ### Environment variables for local development
@@ -85,6 +87,7 @@ This runs the full GitHub Actions pipeline locally using Docker.
 
 ```bash
 kubectl apply -f infrastructure/k8s/cluster/namespace.yaml
+kubectl apply -f infrastructure/k8s/cluster/ingress.yaml
 ```
 
 ### 2. Create secrets (never commit actual values)
@@ -110,13 +113,23 @@ kubectl apply -f infrastructure/k8s/api/configmap.yaml
 kubectl apply -f infrastructure/k8s/api/deployment.yaml
 kubectl apply -f infrastructure/k8s/api/service.yaml
 kubectl apply -f infrastructure/k8s/api/hpa.yaml
+
+### 5. Deploy the MCP server
+
+```bash
+kubectl apply -f infrastructure/k8s/mcp-server/configmap.yaml
+kubectl apply -f infrastructure/k8s/mcp-server/deployment.yaml
+kubectl apply -f infrastructure/k8s/mcp-server/service.yaml
+kubectl apply -f infrastructure/k8s/mcp-server/hpa.yaml
+```
 ```
 
-### 5. Verify
+### 6. Verify
 
 ```bash
 kubectl get pods -n vat-system
 kubectl logs -n vat-system deploy/vat-api
+kubectl logs -n vat-system deploy/mcp-server
 ```
 
 ### Resource limits

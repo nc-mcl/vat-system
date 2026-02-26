@@ -4,10 +4,10 @@ Minimal MCP server scaffold for work use, implemented in TypeScript over stdio t
 
 ## What it provides
 - `health_check` tool
-- `get_business_analyst_context_index` tool (lists analysis Markdown source files)
-- `get_business_analyst_context_bundle` tool (loads latest analysis docs at runtime)
-- `get_architect_context_index` tool (lists architecture Markdown source files)
-- `get_architect_context_bundle` tool (loads latest architecture docs at runtime)
+- `get_business_analyst_context_index` tool (lists `docs/analysis` Markdown source files)
+- `get_business_analyst_context_bundle` tool (loads latest `docs/analysis` docs at runtime)
+- `get_architect_context_index` tool (lists `docs/adr` Markdown source files)
+- `get_architect_context_bundle` tool (loads latest `docs/adr` docs at runtime)
 - `get_role_context_index` tool (lists role-scoped Markdown context files across all roles)
 - `get_role_context_bundle` tool (loads role-scoped Markdown context with optional path filtering)
 - `add_numbers` tool
@@ -16,8 +16,8 @@ Minimal MCP server scaffold for work use, implemented in TypeScript over stdio t
 - `evaluate_dk_vat_filing_obligation` tool (obligation and cadence decision)
 
 ## Why the context tools matter
-- Business analyst context tools read `analysis/**/*.md` on each call.
-- Architect context tools read `architecture/**/*.md` on each call.
+- Business analyst context tools read `docs/analysis/**/*.md` on each call.
+- Architect context tools read `docs/adr/**/*.md` on each call.
 - Role context tools support all roles and enforce role-specific source boundaries.
 
 This means document updates are automatically reflected without changing server code.
@@ -41,6 +41,32 @@ npm run dev
 npm run build
 npm start
 ```
+
+## How to run tests
+No automated test suite is configured yet. Add tests and a `npm test` script before production use.
+
+## Environment variables
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| None | No | - | This server currently has no runtime environment variables |
+
+## Docker
+Build the image:
+```bash
+docker build -t vat-system/mcp-server:local -f mcp-server/Dockerfile .
+```
+
+Run the container:
+```bash
+docker run --rm -p 3000:3000 vat-system/mcp-server:local
+```
+
+## Kubernetes
+Kubernetes manifests live in `infrastructure/k8s/mcp-server/`:
+- `deployment.yaml`
+- `service.yaml`
+- `configmap.yaml`
+- `hpa.yaml`
 
 ## Suggested next-session startup sequence for BA mode
 1. Call `get_business_analyst_context_index`.

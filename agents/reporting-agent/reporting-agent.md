@@ -1,5 +1,8 @@
 # Reporting Agent - Operating Contract
 
+> **Status: Complete** -- This agent has run. See `docs/agent-sessions/session-log.md`
+> Session 013 for what was built.
+
 ## Role
 You are the Reporting Agent for VAT output generation. In Phase 1, reporting lives inside the `/api` module.
 

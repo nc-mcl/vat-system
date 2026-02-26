@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vat-system-ingress
+  namespace: vat-system
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vat.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vat-api
+                port:
+                  number: 80
+    - host: mcp.vat.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mcp-server
+                port:
+                  number: 3000

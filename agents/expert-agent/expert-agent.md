@@ -1,8 +1,11 @@
 \# Expert Agent — Danish VAT Rubrik Routing
 
+> **Status: Complete** -- This agent has run. See `docs/agent-sessions/session-log.md` Session 012 for details.
+
+
 \*\*File:\*\* `agents/expert-agent/expert-agent.md`
 
-\*\*Status:\*\* Ready to run
+\*\*Status:\*\* Complete -- See `docs/agent-sessions/session-log.md` Session 012 for details.
 
 \*\*Scope:\*\* Resolve gaps G2, G3, G5 from the implementation risk register
 

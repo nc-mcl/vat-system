@@ -1,5 +1,5 @@
 # Orchestrator Agent — Operating Contract
-**File:** `agents/orchestrator-agent/orchestrator-agent.md`
+**File:** `agents/Orchestrator-agent/orchestrator-agent.md`
 **Version:** 2.0 — Multi-agent execution enabled
 **Status:** Ready to run
 
@@ -48,6 +48,11 @@ Read these files in order before producing your plan:
 5. `docs/analysis/implementation-risk-register.md`
 6. `docs/analysis/test-coverage-matrix.md`
 7. All agent contracts in `agents/*/` — check for "Status: Complete" banners
+
+## Context Update 2026-02-26
+- Read `docs/audit/audit-report-2026-02-26.md` for documentation findings and fixes.
+- Repo gaps to plan for: missing `infrastructure/k8s/cluster/ingress.yaml`, missing `infrastructure/k8s/mcp-server/` manifests, and `docker-compose.yml` does not include the MCP server despite policy requirements.
+- CI note: `.github/workflows/ci.yml` references `actions/checkout@v6`, which may be invalid.
 
 ---
 
@@ -275,7 +280,7 @@ was not followed by a previous agent.
 | integration-agent | ✅ | Complete |
 | testing-agent | ✅ | Complete |
 | expert-agent | ✅ | Complete |
-| reporting-agent | ✅ | Complete or in progress |
+| reporting-agent | ✅ | Complete |
 | corrections-agent | ❌ | Contract not yet created |
 | security-agent | ❌ | Contract not yet created |
 | phase2-architecture-agent | ❌ | Contract not yet created |

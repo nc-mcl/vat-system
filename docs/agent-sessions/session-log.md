@@ -185,6 +185,76 @@ The following are deferred pending production-grade review:
 ### Next Agent
 **Phase 2 Planning Agent** or **ViDA Agent** â€” scope `Transaction.transactionType` and `Transaction.counterpartyJurisdiction` fields, SAF-T implementation, ViDA DRR integration, and PEPPOL BIS 3.0 e-invoicing.
 
+## Session 014 — Audit Agent
+**Date:** 2026-02-26
+**Status on entry:** Phase 1 complete; reporting layer implemented; documentation needed an audit pass.
+**Status on exit:** Documentation audit completed with fixes applied and manual gaps recorded.
+
+### What Was Done
+- Audited all Markdown files and created `docs/audit/audit-report-2026-02-26.md`.
+- Updated ADR-001 status, domain model docs, CLAUDE.md, README.md, and infra/mcp-server READMEs.
+- Added status banners to completed agent contracts and updated the Orchestrator contract context.
+- Corrected Orchestrator path in `docs/agent-sessions/handoff-current.md`.
+
+### What the Next Agent Needs to Know
+- Policy gaps remain: `docker-compose.yml` missing MCP server; k8s `ingress.yaml` and `mcp-server` manifests missing.
+- `.github/workflows/ci.yml` uses `actions/checkout@v6` (likely invalid).
+- Session log has no Session 001 entry; consider backfilling or documenting start at Session 002.
+- Legacy `packages/*/README.md` files are placeholders; consider removing or updating.
+- See `docs/audit/audit-report-2026-02-26.md` for full detail.
+
+### Next Agent
+**Orchestrator Agent**
+
+## Forward Contract Updates
+- Updated `agents/Orchestrator-agent/orchestrator-agent.md` with a 2026-02-26 context update and corrected file path reference.
+
+## Session 015 — Audit Agent
+**Date:** 2026-02-26
+**Status on entry:** Manual doc fixes pending (compose, k8s ingress/mcp, CI action versions) plus new agent contract audit.
+**Status on exit:** Manual fixes applied; new agent contracts audited and corrected.
+
+### What Was Done
+- Added `mcp-server` to `docker-compose.yml` and updated README/infrastructure docs.
+- Added Kubernetes ingress and `mcp-server` manifests; updated `infrastructure/README.md` and `CLAUDE.md` project structure.
+- Updated `.github/workflows/ci.yml` to use `actions/checkout@v4`.
+- Audited new agent contracts; fixed enum/path references in `agents/frontend-agent/frontend-agent.md` and `agents/phase2-architecture-agent/phase2-architecture-agent.md`.
+- Updated `docs/audit/audit-report-2026-02-26.md` to reflect resolved issues.
+
+### What the Next Agent Needs to Know
+- Remaining manual doc issues: Session 001 missing from session log; legacy `packages/*/README.md` placeholders.
+- `mcp-server` Dockerfile expects context root; verify build path if compose build fails.
+
+### Next Agent
+**Orchestrator Agent**
+
+## Forward Contract Updates
+- None (no next-agent contract changes required beyond the corrections above).
+
+## Session 016 — Audit Agent
+**Date:** 2026-02-26
+**Status on entry:** Manual fixes requested: compose + k8s + CI versions; new agent contract audit pending.
+**Status on exit:** Manual fixes applied, MCP server build context corrected, and legacy package READMEs removed.
+
+### What Was Done
+- Added `mcp-server` service to `docker-compose.yml` and updated docs.
+- Added Kubernetes ingress and MCP server manifests; updated infra docs and project structure.
+- Updated `.github/workflows/ci.yml` to `actions/checkout@v4`.
+- Fixed MCP server Docker build context and docs path roots in code and README.
+- Audited new agent contracts; corrected enum/path references.
+- Removed legacy `packages/*/README.md` placeholders.
+- Updated `docs/audit/audit-report-2026-02-26.md`.
+
+### What the Next Agent Needs to Know
+- Session log still lacks Session 001 (backfill or document start at Session 002).
+- MCP server context now expects docs under `docs/analysis` and `docs/adr`.
+
+### Next Agent
+**Orchestrator Agent**
+
+## Forward Contract Updates
+- None.
+
 <!-- APPEND NEW SESSIONS ABOVE THIS LINE -->
 
 ## Session 008 ï¿½ API Agent
@@ -297,3 +367,18 @@ The following are deferred pending production-grade review:
 
 ### Next Agent
 **Domain Rules Agent**
+
+## Session 001 — Project Initialization
+**Date:** 2026-02-24
+**Status on entry:** New repository with placeholder structure.
+**Status on exit:** Initial scaffolding and agent framework in place; ready for Business Analyst work.
+
+### What Was Done
+- Established initial repository layout and baseline documentation (CLAUDE.md, ROLE_CONTEXT_POLICY.md).
+- Created agent contract structure under `agents/`.
+
+### What the Next Agent Needs to Know
+- Begin with validated VAT domain knowledge gathering and gap analysis.
+
+### Next Agent
+**Business Analyst Agent**

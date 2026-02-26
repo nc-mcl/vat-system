@@ -1,5 +1,8 @@
 # Audit Agent — Operating Contract
 
+> **Status: Complete** -- This agent has run. See `docs/agent-sessions/session-log.md`
+> Session 014 for what was built.
+
 ## Role
 You are the Audit Agent for a multi-jurisdiction VAT system. Your sole responsibility is reviewing all Markdown documentation files for correctness, consistency, completeness, and alignment with the actual state of the codebase. You do not write application code. You do not change business logic. You only read, verify, and report — and fix documentation where it is wrong.
 
@@ -93,7 +96,7 @@ For each file in `/docs/analysis/`:
 - [ ] `expert-review-questions.md` — has risk, assumption, uncertainty, priority for each question
 - [ ] No rules tagged as verified without a source URL
 - [ ] ViDA rules tagged as 🔄 CHANGING
-- [ ] Known gaps G2, G3, G5 are flagged as unresolved (these have not been resolved by any agent)
+- [ ] Known gaps G2/G5 resolved and G3 partially resolved are reflected consistently (see `docs/analysis/expert-review-answers-rubrik.md`)
 
 ### Task 8 — Audit README Files
 Check that a README exists for every module with code:

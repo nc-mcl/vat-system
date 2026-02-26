@@ -21,11 +21,11 @@ function isZero(value: number): boolean {
 }
 
 const workspaceRoot = path.resolve(process.cwd(), "..");
-const analysisRoot = path.join(workspaceRoot, "analysis");
-const architectureRoot = path.join(workspaceRoot, "architecture");
-const designRoot = path.join(workspaceRoot, "design");
-const criticalReviewRoot = path.join(workspaceRoot, "critical-review");
-const optimizationRoot = path.join(workspaceRoot, "optimization");
+const analysisRoot = path.join(workspaceRoot, "docs", "analysis");
+const architectureRoot = path.join(workspaceRoot, "docs", "adr");
+const designRoot = path.join(workspaceRoot, "docs", "diagrams");
+const criticalReviewRoot = path.join(workspaceRoot, "docs", "analysis");
+const optimizationRoot = path.join(workspaceRoot, "docs", "analysis");
 
 const roleSchema = z.enum([
   "architect",

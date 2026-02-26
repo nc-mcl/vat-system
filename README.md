@@ -18,7 +18,7 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 
 ---
 
-## Project Status — Phase 1 In Progress
+## Project Status — Phase 1 Complete (POC)
 
 <!-- BUILD_STATUS_TABLE: Agents must update this table as part of every handoff. -->
 <!-- Status values: ✅ Done | 🔄 In Progress | ⏳ Pending -->
@@ -33,12 +33,12 @@ The VAT system handles the full lifecycle of VAT compliance for businesses opera
 | Design Diagrams | ✅ Done | 8 Mermaid diagrams covering the full system |
 | Dev Container | ✅ Done | VS Code dev container, Docker Compose, CI/CD pipeline |
 | Persistence | ✅ Done | PostgreSQL schema, Flyway migrations, JOOQ repositories, audit ledger |
-| REST API | ✅ Done | Spring Boot REST endpoints, Bean Validation, DTOs, 17 tests passing |
+| REST API | ✅ Done | Spring Boot REST endpoints, Bean Validation, DTOs, 45 unit tests + 6 Docker-gated ITs |
 | SKAT Integration | ✅ Done | SkatClient/ViesClient/PeppolClient interfaces + Phase 1 stubs; full submit flow wired |
 | End-to-End Tests | ✅ Done | 4 filing scenarios (STANDARD, NIL/EXEMPT, REVERSE_CHARGE, SKAT REJECTED); 72 new core-domain tests; persistence lifecycle IT; coverage matrix |
 | Reporting | ✅ Done | DK momsangivelse formatter; VatReportingService; ReportingController with Phase 1 + Phase 2 stub endpoints; 18 new tests |
 
-<!-- Last updated by: Reporting Agent — 2026-02-26 -->
+<!-- Last updated by: Audit Agent — 2026-02-26 -->
 
 ### Phase 1 Roadmap
 
@@ -152,6 +152,7 @@ docker compose up
 
 This starts:
 - `api` — Spring Boot application on port 8080
+- `mcp-server` — MCP server on port 3000
 - `postgres` — PostgreSQL 16 on port 5432
 - `adminer` — database UI on port 8090
 

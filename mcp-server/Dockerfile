@@ -4,29 +4,31 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files first for better layer caching
-COPY package*.json ./
-RUN npm ci --only=production
+COPY mcp-server/package*.json ./mcp-server/
+RUN cd mcp-server && npm ci --only=production
 
 # Copy source and build
-COPY . .
-RUN npm run build
+COPY mcp-server ./mcp-server
+COPY docs/analysis ./docs/analysis
+COPY docs/adr ./docs/adr
+COPY docs/diagrams ./docs/diagrams
+RUN cd mcp-server && npm run build
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────
 FROM node:20-alpine AS runtime
 
-WORKDIR /app
+WORKDIR /app/mcp-server
 
 # Run as non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copy built output and dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+COPY --from=builder /app/mcp-server/dist ./dist
+COPY --from=builder /app/mcp-server/node_modules ./node_modules
+COPY --from=builder /app/mcp-server/package.json ./
 
 # Copy MCP context documents (loaded at runtime by the server)
-COPY --from=builder /app/../analysis ./analysis
-COPY --from=builder /app/../architecture ./architecture
+COPY --from=builder /app/docs ./docs
 
 USER appuser
 

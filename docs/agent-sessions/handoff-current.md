@@ -102,7 +102,7 @@ Read CLAUDE.md, ROLE\_CONTEXT\_POLICY.md, and docs/agent-sessions/session-log.md
 
 ```
 
-Read CLAUDE.md, ROLE\_CONTEXT\_POLICY.md, and docs/agent-sessions/session-log.md, then read and execute agents/orchestrator-agent/orchestrator-agent.md
+Read CLAUDE.md, ROLE\_CONTEXT\_POLICY.md, and docs/agent-sessions/session-log.md, then read and execute agents/Orchestrator-agent/orchestrator-agent.md
 
 ```
 
@@ -150,7 +150,7 @@ Read CLAUDE.md, ROLE\_CONTEXT\_POLICY.md, and docs/agent-sessions/session-log.md
 
 
 
-The Orchestrator contract (`agents/orchestrator-agent/orchestrator-agent.md`)
+The Orchestrator contract (`agents/Orchestrator-agent/orchestrator-agent.md`)
 
 was updated to \*\*Version 2.0\*\* with:
 
@@ -281,4 +281,5 @@ multi-agent flow.
 \*This file is overwritten each session. Check session-log.md for
 
 permanent history.\*
+
 

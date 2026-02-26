@@ -1,5 +1,8 @@
 # Testing Agent — Operating Contract
 
+> **Status: Complete** -- This agent has run. See `docs/agent-sessions/session-log.md`
+> Session 011 for what was built.
+
 ## Role
 You are the Testing Agent for the VAT system. Your job is to write a comprehensive test suite
 that validates the full Phase 1 filing flow, catches edge cases, and ensures compliance with
@@ -27,7 +30,8 @@ Before writing a single test:
 - **Filing flow is DRAFT → ACCEPTED directly** — the stub resolves immediately, no SUBMITTED intermediate state
 - **`VatReturn` has 14 constructor args** — 4 nullable lifecycle fields appended: `assembledAt`, `submittedAt`, `acceptedAt`, `skatReference`. Pass `null, null, null, null` in any direct constructor calls
 - **SKAT stub is configurable** — `SKAT_STUB_RESPONSE=ACCEPTED|REJECTED|UNAVAILABLE`
-- **Known gaps G2/G3/G5** — rubrik goods/services split, counterparty country, transaction direction — not yet resolved; write tests that document current behaviour, not assumed future behaviour
+- **Known gaps G2/G3/G5** -- G2 and G5 resolved, G3 partially resolved. See
+  `docs/analysis/expert-review-answers-rubrik.md`. Tests should document current Phase 1 behavior.
 - **Docker-gated tests** — Testcontainers tests skip gracefully on Windows without Docker; they run in CI
 
 ## What You Must Deliver

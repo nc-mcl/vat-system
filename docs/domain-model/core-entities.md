@@ -153,9 +153,13 @@ Top-level aggregate for a single VAT filing period. Immutable — corrections pr
 | `claimAmount` | `MonetaryAmount` | Yes | Derived: abs(netVat) when CLAIMABLE |
 | `status` | `VatReturnStatus` | Yes | Lifecycle state |
 | `jurisdictionFields` | `Map<String, Object>` | **No** | Authority-specific fields (e.g. SKAT rubrik values) |
+| `assembledAt` | `Instant` | Yes | Timestamp when the return was assembled (nullable) |
+| `submittedAt` | `Instant` | Yes | Timestamp when the return was submitted (nullable) |
+| `acceptedAt` | `Instant` | Yes | Timestamp when the authority accepted (nullable) |
+| `skatReference` | `String` | **No** | Authority reference number (nullable) |
 
-Use the `VatReturn.of(...)` factory to create instances — it derives `netVat`, `resultType`,
-and `claimAmount` automatically.
+Use the `VatReturn.of(...)` factory to create instances. It derives `netVat`, `resultType`,
+and `claimAmount` automatically and provides an overload for optional lifecycle timestamps.
 
 ---
 
@@ -261,6 +265,10 @@ erDiagram
         long claimAmount
         string status
         jsonb jurisdictionFields
+        timestamp assembledAt
+        timestamp submittedAt
+        timestamp acceptedAt
+        string skatReference
     }
 
     CORRECTION {
@@ -304,7 +312,7 @@ erDiagram
 
 | Concept | Neutral Core | DK Extension (via `jurisdictionFields`) |
 |---|---|---|
-| Tax return fields | `outputVat`, `inputVat`, `netVat`, `status` | `rubrikA` (EU goods/services), `rubrikB` (EU goods/services) |
+| Tax return fields | `outputVat`, `inputVatDeductible`, `netVat`, `status` | `rubrikA`/`rubrikB` sub-fields, `rubrikC` |
 | Counterparty ID | `vatNumber` | CVR number (8-digit, stored separately in persistence) |
 | Filing cadence | MONTHLY / QUARTERLY / SEMI_ANNUAL / ANNUAL | Threshold: >50M DKK → monthly; <5M DKK → semi-annual |
 | Tax code | `STANDARD`, `ZERO_RATED`, `EXEMPT`, etc. | Rate: 25% standard, 0% zero/export |

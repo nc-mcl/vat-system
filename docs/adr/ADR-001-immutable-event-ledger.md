@@ -1,7 +1,7 @@
 ﻿# ADR-001: Use Immutable Event Ledger for VAT Transactions
 
 ## Status
-Proposed
+Accepted
 
 ## Context
 Danish Bogføringsloven and EU VAT rules prohibit deletion of accounting records.
